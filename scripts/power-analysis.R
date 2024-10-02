@@ -1,10 +1,16 @@
-library("RCT")
+library(lme4)
+library(simr)
 
-data <- data.frame(y_1 = rbinom(n = 100, size = 1, prob = 0.3),
-                   y_2 = rnorm(n = 100, mean = 8, sd = 2))
-N_min(data$y_1,
-      tau_min = 0.01,
-      power = 0.8,
-      significance = 0.05,
-      share_control = seq(0, 1, 0.1),
-      n_groups = 3)
+df <- read.csv("data/synthetic_1000.csv")
+
+# define mixed effects model
+model <- lmer(WTC ~ Treatment + (1|Participant), data = df)
+
+# extend the model for the desired sample size
+model_extended <- extend(model, along = "Participant", n = 250)
+
+# conduct power simulation
+power_result <- powerSim(model_extended, nsim = 1000)
+
+# output power results
+print(power_result)

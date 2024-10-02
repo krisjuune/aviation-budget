@@ -1,5 +1,6 @@
 import pandas as pd 
 import numpy as np
+import plotly.express as px
 
 #%% reset working directory
 import os
@@ -87,5 +88,27 @@ df['control_flights'] = control_flights
 df['treatment_flights'] = treatment_flights
 df['treatment_wtc'] = treatment_wtc
 
+# %% ####################### check generated data ############################
 
-# %%
+columns_to_plot = ['planned_flights', 
+                   'control_wtc', 
+                   'control_flights', 
+                   'treatment_wtc', 
+                   'treatment_flights']
+
+# Create histograms for each column
+for column in columns_to_plot:
+    fig = px.histogram(df, x=column, title=f'Histogram of {column}', 
+                       labels={column: column}, 
+                       color_discrete_sequence=['blue'],  # You can choose your color
+                       marginal='rug')  # Add a rug plot for additional insights
+    fig.show()
+
+# %% ######################### calculate estimators ###########################
+
+# delta_flights
+df['change_flights'] = df['control_flights'] - df['treatment_flights']
+
+# %% ########################### save to file #################################
+
+df.to_csv('data/synthetic_1000.csv', index=False)
