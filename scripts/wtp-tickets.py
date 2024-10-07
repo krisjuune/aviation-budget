@@ -1,7 +1,5 @@
-import numpy as np # maybe not needed
 import pandas as pd
-#TODO install sympy
-# from sympy import symbols, Eq, solve 
+from sympy import symbols, Eq, solve 
 
 # %% #################### define parameters #######################
 # emissions reduction levels with corresponding SAFs costs per 
@@ -33,49 +31,63 @@ income = pd.DataFrame(income)
 purpose = pd.DataFrame(purpose)
 frequency = pd.DataFrame(frequency)
 
+# constants for flying behaviour relative to low income group's flying
+low_mid_ratio = 1.7 
+low_high_ratio = 7
+nr_low = round(income['low'][0]*nr_passengers)
+nr_mid = round(income['mid'][0]*nr_passengers)
+nr_high = round(income['high'][0]*nr_passengers)
+
 # currency conversion rates as of 04.10.24
 eur_to_usd = 1.1
 eur_to_chf = 0.94
 eur_to_cny = 7.74
 
 # %% ######################## calculate ###########################
-#TODO write code to loop over principles and calculate the
-# costs per passenger (pp)
+
 cost_pp = dict()
 
 # proportional
-cost_pp['proportional'] = round(stringency_costs['costs']/nr_passengers)
+cost_pp['proportional'] = stringency_costs['costs']/nr_passengers
 
 # prioritarian
-cost_pp['tourism'] = round(stringency_costs['costs']/
-                            (nr_passengers*purpose['tourism']))
-#TODO fix below, does not add to the dict for some reason but 
-# returns an empty dict for some reason
+cost_pp['tourism'] = stringency_costs['costs']/(nr_passengers*purpose['tourism'])
+
 cost_pp['non_tourism'] = stringency_costs['costs']*0
 
 # limitarian   
-cost_pp['frequent'] = round(stringency_costs['costs']/
-                            (nr_passengers*frequency['frequent']))
-#TODO fix below, does not add to the dict for some reason but 
-# returns an empty dict for some reason
+cost_pp['frequent'] = stringency_costs['costs']/(nr_passengers*frequency['frequent'])
+
 cost_pp['non_frequent'] = stringency_costs['costs']*0
 
 # egalitarian
-#TODO rewrite egal
-# # Define the variable
-# x = symbols('x')
+# find egalitarian constant
+x = symbols('x')
+equation = Eq(nr_low*x + 
+              nr_mid*x*low_mid_ratio + 
+              nr_high*x*low_high_ratio, 
+              1)
 
-# # Define the equation
-# equation = Eq(25*x + 43*x*1.7 + 186*x*7, 1)
+constant = solve(equation, x)[0].evalf()
 
-# # Solve the equation
-# solution = solve(equation, x)
-# solution
+# calculate costs pp
+cost_pp['low'] = (stringency_costs['costs']*constant).astype(float)
+cost_pp['mid'] = (stringency_costs['costs']*constant*low_mid_ratio).astype(float)
+cost_pp['high'] = (stringency_costs['costs']*constant*low_high_ratio).astype(float)
 
-######################### convert ###########################
-#TODO convert to usd, chf, and cny
+cost_pp = pd.DataFrame(cost_pp)
+
+# %% ######################### convert ###########################
+#convert to usd, chf, and cny
+
+cost_pp_usd = round(cost_pp*eur_to_usd)
+cost_pp_chf = round(cost_pp*eur_to_chf)
+cost_pp_cny = round(cost_pp*eur_to_cny)
 
 
-####################### write to file ########################
-#TODO write three files, one for each currency
-# %%
+# %% ####################### write to file ########################
+# write three files, one for each currency
+
+cost_pp_usd.to_csv('data/cost_pp_usd.csv', index=False)
+cost_pp_chf.to_csv('data/cost_pp_chf.csv', index=False)
+cost_pp_cny.to_csv('data/cost_pp_cny.csv', index=False)
