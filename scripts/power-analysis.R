@@ -1,3 +1,4 @@
+library(Matrix)
 library(lme4)
 library(simr)
 library(dplyr)
@@ -7,25 +8,13 @@ library(forcats)
 library(tidyr)
 source("functions/pre-analysis.R")
 
-df <- read.csv("data/synthetic_1000.csv")
+# fit the linear mixed effects model
 
-# define mixed effects model
-model <- lmer(WTC ~ Treatment + (1 | Participant), data = df)
 
-# extend the model for the desired sample size
-model_extended <- extend(model, along = "Participant", n = 250)
 
-# conduct power simulation
-power_result <- powerSim(model_extended, nsim = 1000)
 
-# output power results
-print(power_result)
 
-#################### make dummy data ########################
-set.seed(42)
 
-n_participants <- 100
-n_reps <- 2
 
 # create data frame for simulation
 data <- expand.grid(
