@@ -111,8 +111,7 @@ for flight_type, df in cost_pp.items():
     }
 
 # check conversion for short haul flights in usd
-cost_pp_short_usd = cost_pp_converted['cost_pp_short']['usd']
-print(cost_pp_short_usd)
+print(cost_pp_converted['cost_pp_short']['usd'])
 
 # %% ####################### write to file ########################
 # write six files, one for each currency and flight type
