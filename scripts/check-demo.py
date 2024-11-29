@@ -9,7 +9,7 @@ quotas = {
     "Demographic Variable": [
         "gender", "gender", 
         "age", "age", "age", "age", "age", "age", 
-        "flying_recent", 
+        "flying_plan", 
         "ch_region", "ch_region", "ch_region", "ch_region"
     ],
     "Category": [
@@ -48,7 +48,16 @@ for country, file_name in files.items():
 
 for country, df in dataframes.items():
     # Filter out rows where DistributionChannel is 'preview' or screened_out is True
-    df = df[(df['DistributionChannel'] != 'preview') & (df['screened_out'] != True)]
+    df = df[(df['DistributionChannel'] != 'preview') & (df['Finished'] != False)]
+    df = df[(df['screened_out'] != "true")]
+    df = df[(df['screened_out'] != "true_trap1")]
+    df = df[(df['screened_out'] != "true_trap2")]
+    df = df[(df['screened_out'] != "true_trap3")]
+    df = df[(df['Q_TerminateFlag'] != "QuotaMet")]
+    df = df[(df['Q_TerminateFlag'] != "Screened")]
+
+    if country == "CH":
+        df = df[(df['screened_out'] != "true_region")]
     
     # Update the dataframe in the dictionary
     dataframes[country] = df
@@ -76,7 +85,7 @@ for country, df in dataframes.items():
     region_data = (
         calculate_proportions(df, "ch_region") if country == "CH" else {}
     )
-    flying_data = calculate_proportions(df, "flying_recent")
+    flying_data = calculate_proportions(df, "plan")
 
     # For China (CN), after calculating, aggregate 55y_64y and 65y_above
     if country == "CN":
@@ -92,5 +101,21 @@ for country, df in dataframes.items():
 
     # Map the proportions to the 'Category' column in df_quotas
     df_quotas[f"{country} data"] = df_quotas["Category"].map(combined_data)
+
+#%% Add sample size
+sample_size_row = {
+"Demographic Variable": "sample_size",
+"Category": "sample_size",
+"US data": len(us_df),
+"CH data": len(ch_df),
+"CN data": len(cn_df)
+}
+
+df_quotas = pd.concat([df_quotas, pd.DataFrame([sample_size_row])], ignore_index=True)
+
+# %% Save to file
+today_date = datetime.today().strftime('%d%m%y')
+file_path = f"data_291124_day/quotacheck_{today_date}.csv"
+df_quotas.to_csv(file_path, index=False)
 
 # %%
