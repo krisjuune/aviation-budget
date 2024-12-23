@@ -112,7 +112,7 @@ for just_columns in justice_columns.values():
 
 # get mean for each key and append to dataframe
 for key, just_columns in justice_columns.items():
-    lpa_data[key] = lpa_data[just_columns].sum(axis=1).round(3)
+    lpa_data[key] = lpa_data[just_columns].mean(axis=1).round(3)
 
 lpa_input = lpa_data[[
     'id', 

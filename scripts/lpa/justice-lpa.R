@@ -97,8 +97,11 @@ ggsave("output/fit-stats-lpa.png", plot = plot, width = 8, height = 6, dpi = 300
 
 ###################### select model ###########################
 
-class_assignments <- lpa_results[[3]]$dff$Class
-lpa_data <- lpa_data %>%
-  mutate(justice_class = class_assignments)
+class_assignments_3 <- lpa_results[[3]]$dff$Class
+class_assignments_6 <- lpa_results[[6]]$dff$Class
 
-write.csv(lpa_data, "output/lpa_results.csv", row.names = TRUE)
+lpa_data <- lpa_data %>%
+  mutate(justice_class_3 = class_assignments_3) %>%
+  mutate(justice_class_6 = class_assignments_6)
+
+write.csv(lpa_data, "output/lpa_output.csv", row.names = TRUE)
