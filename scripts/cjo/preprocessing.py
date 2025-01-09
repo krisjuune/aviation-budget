@@ -123,6 +123,7 @@ lpa_input = lpa_data[[
     'limitarian',
 ]]
 
+lpa_data.to_csv("data/cjo_icc_input.csv")
 lpa_input.to_csv("data/lpa_input.csv")
 
 # %%

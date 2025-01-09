@@ -10,7 +10,9 @@ library(grid) # needed??
 
 lpa_data <- read.csv("data/lpa_input.csv")
 set.seed(42)
-m = 10
+
+# set nr of models to test, 1:m models will be checked
+m <- 10
 
 ################### get LPA models #####################
 
