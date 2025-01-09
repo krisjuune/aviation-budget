@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pingouin as pg
 
 # %%
@@ -22,6 +23,15 @@ df_long['principle'] = df_long['variable'].str.extract(r'(\d+)')
 
 std = df_long.groupby('id')['score'].std()
 
+# %% 
+
+############# test plots ###############
+
+import seaborn as sns
+sns.boxplot(data=df_long, x="principle", y="score")
+
+df_long.groupby('id')['score'].std().hist(bins=25)
+
 # %%
 ############## run icc #################
 
@@ -43,5 +53,29 @@ for principle in df_long['principle'].unique():
 icc_results = pd.concat(icc_results)
 
 print(icc_results[['principle', 'ICC', 'CI95%']])
+
+# %%
+########## cronbach's alpha #############
+
+# check if the items under one primciples are measuring the same thing
+# whether there's internal consistency 
+
+def cronbach_alpha(df):
+    # df should be a dataframe where each column is a measurement/item for a principle
+    item_scores = df.values
+    item_variances = item_scores.var(axis=0, ddof=1)
+    total_score_var = item_scores.sum(axis=1).var(ddof=1)
+    n_items = df.shape[1]
+    
+    return (n_items / (n_items - 1)) * (1 - item_variances.sum() / total_score_var)
+
+# Example usage per principle:
+alpha_results = {}
+for principle in df_long['principle'].unique():
+    # Pivot to create one column per variable (item) for each principle
+    df_pivot = df_long[df_long['principle'] == principle].pivot(index='id', columns='variable', values='score')
+    alpha_results[principle] = cronbach_alpha(df_pivot)
+
+alpha_results
 
 # %%
