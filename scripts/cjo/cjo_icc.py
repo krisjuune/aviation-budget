@@ -1,13 +1,14 @@
 import pandas as pd
 import pingouin as pg
 
-#%%
+# %%
 ############### read data ###############
 
 df = pd.read_csv("data/cjo_icc_input.csv")
+df = df[df['country'].isin(['US'])]
 
-# %%
-############## run icc #################
+# %% 
+############## prep data ################
 
 df_long = df.melt(id_vars=['id'], 
                         value_vars=['justice_general_1', 'justice_tax_1', 'justice_subsidy_1',
@@ -19,11 +20,28 @@ df_long = df.melt(id_vars=['id'],
 # Extract set number from variable name (1, 2, 3, or 4)
 df_long['principle'] = df_long['variable'].str.extract(r'(\d+)')
 
-icc_results = pg.intraclass_corr(data=df_long, 
-                                 targets='id', 
-                                 raters='principle', 
-                                 ratings='score')
+std = df_long.groupby('id')['score'].std()
 
-print(icc_results)
+# %%
+############## run icc #################
+
+icc_results = []
+
+for principle in df_long['principle'].unique():
+    df_subset = df_long[df_long['principle'] == principle]
+    icc = pg.intraclass_corr(
+        data=df_subset, 
+        targets='id', 
+        raters='variable', 
+        ratings='score'
+    )
+    icc_3_1 = icc[icc['Type'] == 'ICC3'].copy()
+    icc_3_1['principle'] = principle
+    icc_results.append(icc_3_1)
+
+
+icc_results = pd.concat(icc_results)
+
+print(icc_results[['principle', 'ICC', 'CI95%']])
 
 # %%
