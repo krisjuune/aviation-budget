@@ -4,11 +4,8 @@ library(tidyLPA)
 library(tidyverse)
 # library(dplyr)
 library(ggplot2)
-library(patchwork)
-library(grid) # needed??
-# library(Matrix)
 
-lpa_data <- read.csv("data/lpa_input.csv") %>%
+lpa_data <- read.csv("data/lpa_input.csv") |>
   select(-X)
 set.seed(43)
 
@@ -18,20 +15,20 @@ m <- 8
 ################### get LPA models #####################
 
 # choose columns for the lpa
-lpa_columns <- lpa_data %>%
+lpa_columns <- lpa_data |>
   select(-id, -country)
 
 # also test with CH data only
-lpa_data_ch <- lpa_data %>%
+lpa_data_ch <- lpa_data |>
   filter(country == "CH")
 
-lpa_columns_ch <- lpa_data_ch %>%
+lpa_columns_ch <- lpa_data_ch |>
   select(-id, -country)
 
 perform_lpa_analysis <- function(lpa_columns, m, output_dir = "output", country = "") {
   # check if data is numeric as it should
-  lpa_columns <- lpa_columns %>%
-    mutate_if(is.factor, as.numeric) %>%
+  lpa_columns <- lpa_columns |>
+    mutate_if(is.factor, as.numeric) |>
     mutate_if(is.character, as.numeric)
   
   # adjust filenames based on country
@@ -73,8 +70,8 @@ perform_lpa_analysis <- function(lpa_columns, m, output_dir = "output", country 
   write.csv(fit_stats, file.path(output_dir, csv_filename), row.names = TRUE)
 
   # prepare data for plotting
-  fit_stats_plot <- fit_stats %>%
-    select(G, AIC, AWE, BIC, SABIC, ICL) %>%
+  fit_stats_plot <- fit_stats |>
+    select(G, AIC, AWE, BIC, SABIC, ICL) |>
     mutate(ICL = ICL * -1)
 
   fit_stats_long <- pivot_longer(fit_stats_plot,
@@ -147,8 +144,8 @@ lpa_results_ch <- perform_lpa_analysis(lpa_columns_ch, m, country = "ch")
 class_assignments_3 <- lpa_results[[3]]$dff$Class
 class_assignments_5 <- lpa_results[[5]]$dff$Class
 
-lpa_data <- lpa_data %>%
-  mutate(justice_class_3 = class_assignments_3) %>%
+lpa_data <- lpa_data |>
+  mutate(justice_class_3 = class_assignments_3) |>
   mutate(justice_class_5 = class_assignments_5)
 
 write.csv(lpa_data, "data/lpa_output.csv", row.names = TRUE)
@@ -156,8 +153,8 @@ write.csv(lpa_data, "data/lpa_output.csv", row.names = TRUE)
 
 ################### check models 3 to 5 ######################
 
-lpa_tidy <- lpa_columns %>%
-  single_imputation() %>%    # handle missing data if necessary
+lpa_tidy <- lpa_columns |>
+  single_imputation() |>    # handle missing data if necessary
   estimate_profiles(n_profiles = 3:5,
                     package = "mclust")
 
@@ -167,5 +164,14 @@ lpa_tidy
 # visualize the profiles from tidyLPA
 plot_profiles(lpa_tidy)
 
-counts <- table(lpa_data$justice_class)
-counts
+################## interpret models 3 and 5 #################
+#TODO counts numbering doesn't match what is one the plot
+# because the model was run separately
+
+counts_3 <- table(lpa_data$justice_class_3)
+counts_3
+
+counts_5 <- table(lpa_data$justice_class_5)
+counts_5
+
+
