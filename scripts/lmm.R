@@ -36,4 +36,6 @@ emm <- emmeans(model, ~ treatment * red_amt)
 summary(emm)
 contrast(emm, method = "pairwise", by = "red_amt")
 plot(emm, comparisons = TRUE)
-pwpp(emm)
+pwpp(emm, by = "red_amt")
+
+

@@ -29,6 +29,7 @@ var_list <- c(
   "id", "country",
   "c_wtc_fly", "t_wtc_fly",
   "c_wtp_buy", "t_wtp_buy",
+  "planned_flights", "c_wtc_fly_number", "t_wtc_fly_number",
   "treatment", "red_amt"
 )
 
@@ -41,12 +42,24 @@ df_tidy <- df |>
   mutate(
   wtc = case_when(
     treatment == "control" ~ c_wtc_fly,
-    treatment != "control" ~ t_wtc_fly),
+    treatment != "control" ~ t_wtc_fly
+  ),
   wtp = case_when(
     treatment == "control" ~ c_wtp_buy,
-    treatment != "control" ~ t_wtp_buy)
+    treatment != "control" ~ t_wtp_buy
+  ),
+  pre_flights = planned_flights,
+  post_flights = case_when(
+    treatment == "control" ~ c_wtc_fly_number,
+    treatment != "control" ~ t_wtc_fly_number
+  ),
   ) |>
-  select(id, country, wtc, wtp, treatment, red_amt)
+  select(
+    id, country,
+    wtc, wtp,
+    pre_flights, post_flights,
+    treatment, red_amt
+  )
 
 df_tidy |>
   group_by(treatment) |>
@@ -72,9 +85,19 @@ df_tidy <- df_tidy |>
     value %in% c("somewhat_willing", "somewhat_likely") ~ 3,
     value %in% c("willing", "likely") ~ 4,
     value %in% c("very_willing", "very_likely") ~ 5,
-  ))
-
-df_tidy <- df_tidy |>
+  )) |>
+  pivot_wider(
+    names_from = "outcome",
+    values_from = "value"
+  ) |>
+  pivot_longer(
+    cols = c(pre_flights, post_flights),
+    names_to = "time",
+    values_to = "planned_flights"
+  ) |>
+  mutate(
+    time = ifelse(time == "pre_flights", "pre", "post")
+  ) |>
   filter(!is.na(treatment) & !is.na(red_amt))
 
 write_csv(df_tidy, here("data", "wtc_wtp_tidy.csv"))
