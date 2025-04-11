@@ -40,19 +40,19 @@ df <- map_dfr(
 
 df_tidy <- df |>
   mutate(
-  wtc = case_when(
-    treatment == "control" ~ c_wtc_fly,
-    treatment != "control" ~ t_wtc_fly
-  ),
-  wtp = case_when(
-    treatment == "control" ~ c_wtp_buy,
-    treatment != "control" ~ t_wtp_buy
-  ),
-  pre_flights = planned_flights,
-  post_flights = case_when(
-    treatment == "control" ~ c_wtc_fly_number,
-    treatment != "control" ~ t_wtc_fly_number
-  ),
+    wtc = case_when(
+      treatment == "control" ~ c_wtc_fly,
+      treatment != "control" ~ t_wtc_fly
+    ),
+    wtp = case_when(
+      treatment == "control" ~ c_wtp_buy,
+      treatment != "control" ~ t_wtp_buy
+    ),
+    pre_flights = planned_flights,
+    post_flights = case_when(
+      treatment == "control" ~ c_wtc_fly_number,
+      treatment != "control" ~ t_wtc_fly_number
+    ),
   ) |>
   select(
     id, country,
@@ -101,3 +101,65 @@ df_tidy <- df_tidy |>
   filter(!is.na(treatment) & !is.na(red_amt))
 
 write_csv(df_tidy, here("data", "wtc_wtp_tidy.csv"))
+
+
+
+colnames(df_ch)
+
+var_list_fair <- c(
+  "id", "country",
+  "c_wtc_fly", "t_wtc_fly",
+  "c_wtp_buy", "t_wtp_buy",
+  "planned_flights", "c_wtc_fly_number", "t_wtc_fly_number",
+  "treatment", "red_amt",
+  "c_wtc_fair_group", "t1_wtc_group_fair",
+  "t2_wtc_group_fair", "t3_wtc_group_fair", "t4_wtc_group_fair",
+  "c_wtc_fair_self", "t1_wtc_fair_self",
+  "t2_wtc_fair_self", "t3_wtc_fair_self", "t4_wtc_fair_self",
+  "c_wtp_fair_group", "t1_wtp_fair_group",
+  "t2_wtp_fair_group", "t3_wtp_fair_group", "t4_wtp_fair_group",
+  "c_wtp_fair_self", "t1_wtp_fair_self",
+  "t2_wtp_fair_self", "t3_wtp_fair_self", "t4_wtp_fair_self"
+)
+
+df_fair <- map_dfr(
+  list(df_us, df_ch, df_cn),
+  select, all_of(var_list_fair)
+)
+
+df_fair <- df_fair |>
+  mutate(
+    wtc = case_when(
+      treatment == "control" ~ c_wtc_fly,
+      treatment != "control" ~ t_wtc_fly
+    ),
+    wtp = case_when(
+      treatment == "control" ~ c_wtp_buy,
+      treatment != "control" ~ t_wtp_buy
+    ),
+    pre_flights = planned_flights,
+    post_flights = case_when(
+      treatment == "control" ~ c_wtc_fly_number,
+      treatment != "control" ~ t_wtc_fly_number
+    ),
+    fair_group_wtc = case_when(
+      treatment == "control" ~ c_wtc_group_fair,
+      treatment == "egal" ~ t1_wtc_group_fair,
+      treatment == "limit" ~ t2_wtc_group_fair,
+      treatment == "prior" ~ t3_wtc_group_fair,
+      treatment == "prop" ~ t4_wtc_group_fair
+    ),
+    fair_self_wtc = case_when(
+      treatment == "control" ~ c_wtc_self_fair,
+      treatment == "egal" ~ t1_wtc_self_fair,
+      treatment == "limit" ~ t2_wtc_self_fair,
+      treatment == "prior" ~ t3_wtc_self_fair,
+      treatment == "prop" ~ t4_wtc_self_fair
+    )
+  ) |>
+  select(
+    id, country,
+    wtc, wtp,
+    pre_flights, post_flights,
+    treatment, red_amt
+  )
