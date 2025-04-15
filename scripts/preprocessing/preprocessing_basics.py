@@ -52,7 +52,7 @@ for country, df in dataframes.items():
     # update the ID counter for the next dataframe
     id_counter += len(df)
 
-    # turn pct in reduction amount to numeric values
+    # # turn pct in reduction amount to numeric values
     # df['red_amt'] = df['red_amt'].str.rstrip('%').astype(float) / 100
 
     dataframes[country] = df

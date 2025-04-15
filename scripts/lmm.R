@@ -1,5 +1,6 @@
 library(lme4)
 library(emmeans)
+library(performance)
 library(dplyr)
 library(ggplot2)
 library(purrr)
@@ -54,8 +55,30 @@ emm <- emmeans(model, ~ time * treatment * red_amt)
 pairs(emm, by = c("treatment", "red_amt"))
 emmip(model, treatment ~ time | red_amt, CIs = TRUE)
 plot(emm, comparisons = TRUE, by = "time")
-pwpp(emm, by = "red_amt")
+pwpp(emm, by = c("time", "red_amt"))
 
+#################### assumptions #######################
+
+# check whether assumptions of normally distirbuted
+# residuals and random effects hold
+
+qqnorm(resid(model))
+qqline(resid(model))
+plot(model)
+
+ranef_vals <- ranef(model)$country[, "(Intercept)"]
+qqnorm(ranef_vals)
+qqline(ranef_vals)
+check_model(model)
+
+# can drop the interaction of the factors to resolve
+# high collinearity
+
+
+################### test Bayesian ######################
+
+library(brms)
+brm(wtc ~ treatment * red_amt + (1 | country), data = data_flights)
 
 ###################### fairness #########################
 model <- lmer(

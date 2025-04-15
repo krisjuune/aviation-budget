@@ -206,3 +206,20 @@ df_fair <- df_fair |>
   filter(!is.na(treatment) & !is.na(red_amt))
 
 write_csv(df_fair, here("data", "wtc_wtp_fair_tidy.csv"))
+
+
+
+
+##################### covariates ########################
+
+colnames(df_us)
+
+var_list <- c(
+  "id", "country",
+  "c_wtc_fly", "t_wtc_fly",
+  "c_wtp_buy", "t_wtp_buy",
+  "planned_flights", "c_wtc_fly_number", "t_wtc_fly_number",
+  "treatment", "red_amt"
+)
+
+
