@@ -36,6 +36,12 @@ for country, df in dataframes.items():
     # update the dataframe in the dictionary
     dataframes[country] = df
 
+# %% fix typos
+
+dataframes["US"]["personal_income"] = dataframes["US"]["personal_income"].replace("15k_35k", "15k_25k")
+dataframes["CH"] = dataframes["CH"].rename(columns={"recent_flights": "flying_recent_number"})
+dataframes["CN"] = dataframes["CN"].rename(columns={"recent_flights": "flying_recent_number"})
+
 # %% add response IDs
 
 # get the total number of rows across all dataframes

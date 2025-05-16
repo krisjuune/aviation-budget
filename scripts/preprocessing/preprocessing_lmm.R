@@ -212,14 +212,66 @@ write_csv(df_fair, here("data", "wtc_wtp_fair_tidy.csv"))
 
 ##################### covariates ########################
 
-colnames(df_us)
-
-var_list <- c(
-  "id", "country",
-  "c_wtc_fly", "t_wtc_fly",
-  "c_wtp_buy", "t_wtp_buy",
-  "planned_flights", "c_wtc_fly_number", "t_wtc_fly_number",
-  "treatment", "red_amt"
+df_demo <- map_dfr(
+  list(df_us, df_ch, df_cn),
+  ~ select(
+    .x,
+    id,
+    country,
+    clim_concern_wtc,
+    clim_concern_wtp,
+    eu_clim_conc,
+    personal_income,
+    flying_recent,
+    flying_recent_number,
+    add_cost
+  )
 )
 
+df_demo <- df_demo |>
+  mutate(across(
+    c(clim_concern_wtc, clim_concern_wtp, eu_clim_conc),
+    ~ case_when(
+      .x %in% c("not_at_all_worried", "very_unimportant") ~ 0,
+      .x %in% c("unimportant") ~ 1,
+      .x %in% c("not_very_worried") ~ 1.67,
+      .x %in% c("somewhat_unimportant") ~ 2,
+      .x %in% c("somewhat_important") ~ 3,
+      .x %in% c("somewhat_worried") ~ 3.33,
+      .x %in% c("important") ~ 4,
+      .x %in% c("extremely_worried", "very_important") ~ 5,
+      .x %in% c("prefer_not_to_say") ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  )) |>
+  mutate(
+    clim_concern_score = clim_concern_wtc + clim_concern_wtp + eu_clim_conc
+  ) |>
+  mutate(
+    income_decile = case_when(
+      country == "CH" & personal_income == "25k_35k" ~ 2,
+      country == "US" & personal_income == "25k_35k" ~ 3,
+      country == "CH" & personal_income == "35k_45k" ~ 3,
+      country == "US" & personal_income == "35k_45k" ~ 4,
+      country == "CH" & personal_income == "45k_55k" ~ 4,
+      country == "US" & personal_income == "45k_55k" ~ 5,
 
+      personal_income %in% c("below_15k", "25k_below", "10k_below") ~ 1,
+      personal_income %in% c("15k_25k", "10k_20k") ~ 2,
+      personal_income %in% c("20k_30k") ~ 3,
+      personal_income %in% c("30k_45k") ~ 4,
+      personal_income %in% c("55k_65k", "45k_60k") ~ 5,
+      personal_income %in% c("55k_70k", "65k_80k", "60k_75k") ~ 6,
+      personal_income %in% c("70k_90k", "80k_95k", "75k_100k") ~ 7,
+      personal_income %in% c("90k_115k", "95k_115k", "100k_130k") ~ 8,
+      personal_income %in% c("115k_175k", "115k_150k", "130k_180k") ~ 9,
+      personal_income %in% c("175k_above", "above_150k", "above_180k") ~ 10,
+      personal_income %in% c("prefer_not_to_say") ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  )
+
+df_demo_tidy <- df_tidy |>
+  left_join(df_demo, by = c("id", "country"))
+
+write_csv(df_demo_tidy, here("data", "wtc_wtp_controls_tidy.csv"))
