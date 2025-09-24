@@ -249,12 +249,12 @@ df_demo <- df_demo |>
   ) |>
   mutate(
     income_decile = case_when(
-      country == "CH" & personal_income == "25k_35k" ~ 2,
-      country == "US" & personal_income == "25k_35k" ~ 3,
-      country == "CH" & personal_income == "35k_45k" ~ 3,
-      country == "US" & personal_income == "35k_45k" ~ 4,
-      country == "CH" & personal_income == "45k_55k" ~ 4,
-      country == "US" & personal_income == "45k_55k" ~ 5,
+      country == "ch" & personal_income == "25k_35k" ~ 2,
+      country == "us" & personal_income == "25k_35k" ~ 3,
+      country == "ch" & personal_income == "35k_45k" ~ 3,
+      country == "us" & personal_income == "35k_45k" ~ 4,
+      country == "ch" & personal_income == "45k_55k" ~ 4,
+      country == "us" & personal_income == "45k_55k" ~ 5,
 
       personal_income %in% c("below_15k", "25k_below", "10k_below") ~ 1,
       personal_income %in% c("15k_25k", "10k_20k") ~ 2,
@@ -270,6 +270,9 @@ df_demo <- df_demo |>
       TRUE ~ NA_real_
     )
   )
+
+df_demo |>
+  tabyl(income_decile, country)
 
 df_demo_tidy <- df_tidy |>
   left_join(df_demo, by = c("id", "country"))

@@ -11,7 +11,7 @@ library(here)
 library(colorspace)
 library(patchwork)
 
-data <- read_csv(here("data", "wtc_wtp_tidy.csv"))
+data <- read_csv(here("data", "wtc_wtp_tidy.csv"), show_col_types = FALSE)
 
 data_flights <- data |>
   filter(!is.na(wtc)) |>
@@ -227,8 +227,3 @@ ggsave(
 # residuals and random effects hold
 check_model(model)
 
-
-################### test Bayesian ######################
-
-# library(brms)
-# brm(wtc ~ treatment * red_amt + (1 | country), data = data_flights)
