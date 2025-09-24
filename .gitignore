@@ -4,3 +4,4 @@
 /output
 .DS_Store
 init_kernel.py
+.vscode/
