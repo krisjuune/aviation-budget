@@ -42,11 +42,11 @@ data_controls <- read_csv(
       levels = c("non-flyer", "average flyer", "frequent flyer")
     ),
     treatment = factor(treatment) |> fct_relevel("control"),
-    time = factor(time, levels = c("pre", "post"))
+    time = factor(time, levels = c("pre", "post")),
+    income_decile = as.integer(income_decile)
   )
 
-
-# adding additional covariates
+################ model covariates ##################
 
 model_wtc <- lmer(
   wtc ~ treatment * red_amt +
@@ -70,44 +70,82 @@ summary(model_wtc)
 summary(model_wtp)
 
 covariates <- c("clim_concern_score", "income_decile", "flying_recent_number")
+covariate_labels <- c(
+  clim_concern_score = "Climate concern",
+  flying_recent_number = "Nr of flights per year",
+  income_decile = "Income decile"
+)
 
 plot_covariate_effects <- function(
   model,
   covariates,
+  x_labels = NULL,
   response_label = "Predicted response",
-  title = "Marginal effects of covariates",
-  main_text_size = 14
+  main_text_size = 14,
+  title = NULL
 ) {
   preds_all <- covariates |>
-    lapply(\(var) ggpredict(model, terms = var) |> 
-             as.data.frame() |> 
-             mutate(variable = var)) |>
+    lapply(\(var) 
+      ggpredict(model, terms = var) |>
+        as.data.frame() |>
+        mutate(variable = var)
+    ) |>
     bind_rows()
 
-  ggplot(preds_all, aes(x = x, y = predicted)) +
+  p <- ggplot(preds_all, aes(x = x, y = predicted)) +
     geom_line() +
     geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
-    facet_wrap(~ variable, scales = "free_x") +
+    geom_hline(yintercept = 2.5, linetype = "dashed") +
+    facet_wrap(
+      ~ variable,
+      scales = "free_x",
+      labeller = if (!is.null(x_labels)) 
+        as_labeller(x_labels) 
+      else 
+        "label_value"
+    ) +
     theme_classic() +
+    theme(
+      text = element_text(size = main_text_size),
+      strip.background = element_rect(linewidth = 0),
+      strip.text.x = element_text(size = main_text_size, face = "bold")
+    ) +
     labs(
-      x = "Value of covariate",
+      x = NULL,
       y = response_label,
       title = title
     ) +
-    # scale_y_continuous(limits = c(-0.8, 5.4)) +
+    scale_x_continuous(
+      breaks = function(x) {
+        brks <- pretty(x, n = 5)
+        brks[brks %% 1 == 0]
+      }
+    ) +
+    ylim(0, 5) +
     theme(text = element_text(size = main_text_size))
+
+  return(p)
 }
 
 plot_wtc_covariates <- plot_covariate_effects(
   model_wtc,
   covariates,
-  response_label = "Predicted willingness to reduce flying"
+  x_labels = covariate_labels,
+  response_label = NULL,
+  title = "B. Predicted willingness to change"
+) + theme(
+  strip.text.x = element_blank()
 )
+
 plot_wtp_covariates <- plot_covariate_effects(
   model_wtp,
   covariates,
-  response_label = "Predicted willingness to pay for SAFs"
+  x_labels = covariate_labels,
+  response_label = NULL,
+  title = "A. Predicted willingness to pay"
 )
+
+plot_covariates <- plot_wtp_covariates / plot_wtc_covariates
 
 emm <- emmeans(model_wtc, ~ red_amt * treatment)
 plot_emmeans(emm, plot_30 = FALSE)
@@ -126,6 +164,13 @@ ggsave(
   height = 6, width = 10
 )
 
+ggsave(
+  plot = plot_covariates,
+  here("output", "plot_covariates.png"),
+  height = 7, width = 14
+)
+
+################# income and flying #####################
 # income and flying behaviour correlation
 
 # filter missing
@@ -137,7 +182,7 @@ data_controls_num <- data_controls |>
       country,
       "ch" = "Switzerland",
       "cn" = "China",
-      "us" = "The United States"
+      "us" = "United States"
     )
   )
 
