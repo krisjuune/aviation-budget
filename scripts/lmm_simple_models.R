@@ -12,14 +12,45 @@ library(colorspace)
 library(patchwork)
 
 data <- read_csv(here("data", "wtc_wtp_tidy.csv"), show_col_types = FALSE)
+data_fair <- read_csv(
+  here("data", "wtc_wtp_fair_tidy.csv"),
+  show_col_types = FALSE
+)
+
+fair_vars <- data_fair |>
+  select(
+    id,
+    fair_group_wtp,
+    fair_self_wtp,
+    fair_group_wtc,
+    fair_self_wtc
+  ) |>
+  distinct()
 
 data_flights <- data |>
   filter(!is.na(wtc)) |>
-  mutate(time = factor(
-    time,
-    levels = c("post", "pre")
+  mutate(
+    time = factor(
+      time,
+      levels = c("post", "pre")
+    ),
+    treatment = factor(treatment) |>
+      fct_recode(
+        "Control" = "control",
+        "Egalitarianism" = "egal",
+        "Limitarianism" = "limit",
+        "Prioritarianism" = "prior",
+        "Proportionalism" = "prop"
+      ) |>
+      fct_relevel("Control"),
+    red_amt = factor(
+      red_amt,
+      levels = c("15%", "30%", "45%")
+    )
   )
-  )
+
+data_flights <- data_flights |>
+  left_join(fair_vars, by = "id")
 
 ################## plot functions #####################
 
@@ -27,7 +58,8 @@ plot_emmeans <- function(
   emm,
   main_text_size = 14,
   plot_30 = TRUE,
-  alpha = 1
+  alpha = 1,
+  title = NULL
 ) {
   data <- as.data.frame(emm)
 
@@ -55,17 +87,22 @@ plot_emmeans <- function(
       alpha = alpha
     ) +
     labs(
-      y = "Estimated marginal means",
-      x = "Treatment",
-      color = "Emissions reductions"
+      y = NULL,
+      x = NULL,
+      color = "Emissions reductions",
+      title = title
     ) +
-    scale_color_viridis_d(option = "plasma", end = .8) +
+    scale_color_viridis_d(
+      option = "plasma",
+      end = .8,
+    ) +
     geom_hline(
       yintercept = 2.5,
       linetype = 2,
       colour = "gray40",
       linewidth = .3
     ) +
+    ylim(1, 4) +
     theme_classic() +
     theme(text = element_text(size = main_text_size))
 }
@@ -142,40 +179,47 @@ plot_flight_change <- function(
     # geom_hline(yintercept = 0, linetype = 2, color = "gray40") +
     theme_classic() +
     labs(
-      y = "Estimated change after treatment",
-      x = "Treatment",
+      y = NULL,
+      x = NULL,
       color = "Emissions reductions"
     ) +
+    ylim(1, 4) +
     theme(text = element_text(size = main_text_size))
 }
 
 ################## basic analysis #####################
 # willingness to reduce flying
 model <- lmer(
-  wtc ~ treatment * red_amt + (1 | country),
-  data = data
+  wtc ~ treatment * red_amt + fair_group_wtc + fair_self_wtc + (1 | country),
+  data = data_flights
 )
 summary(model)
 emm <- emmeans(model, ~ red_amt * treatment)
 contrast(emm, method = "pairwise", by = "red_amt")
-pwpp(emm, by = "red_amt") + theme_classic()
 
-plot_wtc <- plot_emmeans(emm, plot_30 = FALSE) +
-  scale_y_continuous(limits = c(1.7, 3.3))
+plot_wtc <- plot_emmeans(
+  emm,
+  plot_30 = FALSE,
+  title = "B. Willingness to change"
+)
+
 plot_wtc_contrasts <- plot_pairwise_contrasts(emm, plot_30 = FALSE) +
   scale_x_continuous(limits = c(-1.2, 1.2))
 
 # willingness to pay for SAFs
 model <- lmer(
-  wtp ~ treatment * red_amt + (1 | country),
-  data = data
+  wtp ~ treatment * red_amt + relative_added_cost + fair_group_wtc + fair_self_wtc + (1 | country),
+  data = data_flights
 )
 summary(model)
 emm <- emmeans(model, ~ treatment * red_amt)
-pwpp(emm, by = "red_amt") + theme_classic()
 
-plot_wtp <- plot_emmeans(emm, plot_30 = FALSE) +
-  scale_y_continuous(limits = c(1.7, 3.3))
+plot_wtp <- plot_emmeans(
+  emm,
+  plot_30 = FALSE,
+  title = "A. Willingness to pay"
+)
+
 plot_wtp_contrasts <- plot_pairwise_contrasts(
   emm,
   plot_30 = FALSE,
@@ -195,6 +239,12 @@ plot_del_flights <- plot_flight_change(emm, plot_30 = FALSE)
 plot_wtc_combined <- (plot_wtc / plot_del_flights) +
   plot_layout(guides = "collect", axis_titles = "collect") +
   plot_annotation(tag_levels = "A")
+
+plot_redamt_combined <- (
+  plot_wtp | plot_wtc
+) +
+  plot_layout(guides = "collect", axis_titles = "collect") &
+  theme(legend.position = "bottom")
 
 # save stuff
 ggsave(
@@ -219,6 +269,12 @@ ggsave(
   plot = plot_wtc_combined,
   here("output", "plot_wtc_combined.png"),
   height = 8, width = 10
+)
+
+ggsave(
+  plot = plot_redamt_combined,
+  here("output", "plot_redamt_combined.png"),
+  height = 6, width = 14
 )
 
 #################### assumptions #######################

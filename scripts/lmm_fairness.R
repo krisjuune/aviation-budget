@@ -13,8 +13,8 @@ library(patchwork)
 source(here("scripts", "lmm_simple_models.R"))
 
 data_fair <- read_csv(
-    here("data", "wtc_wtp_fair_tidy.csv"),
-    show_col_types = FALSE
+  here("data", "wtc_wtp_fair_tidy.csv"),
+  show_col_types = FALSE
 ) |>
   filter(!is.na(wtc))
 

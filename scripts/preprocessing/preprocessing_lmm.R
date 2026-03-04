@@ -3,6 +3,7 @@ library(here)
 library(stringr)
 library(dplyr)
 library(purrr)
+library(janitor)
 
 df_us <- read_csv(
   here("data", "data_clean_us.csv"),
@@ -28,14 +29,35 @@ df_cn <- read_csv(
     country = "cn"
   )
 
+###################### remove outliers ####################
+
+cutoff <- 200
+
+df_cn <- df_cn[
+  !is.na(df_cn$flying_recent_number) &
+    df_cn$flying_recent_number <= cutoff,
+]
+
 
 ###################### wtc, wtp, flights ##################
+
+ticket_lookup <- tibble::tribble(
+  ~country, ~route_length, ~ticket_cost,
+  "us",     "short",       150,
+  "us",     "long",        400,
+  "ch",     "short",       130,
+  "ch",     "long",        350,
+  "cn",     "short",       1000,
+  "cn",     "long",        3000
+)
+
 var_list <- c(
   "id", "country",
   "c_wtc_fly", "t_wtc_fly",
   "c_wtp_buy", "t_wtp_buy",
   "planned_flights", "c_wtc_fly_number", "t_wtc_fly_number",
-  "treatment", "red_amt"
+  "treatment", "red_amt",
+  "route_length", "add_cost"
 )
 
 df <- map_dfr(
@@ -63,7 +85,8 @@ df_tidy <- df |>
     id, country,
     wtc, wtp,
     pre_flights, post_flights,
-    treatment, red_amt
+    treatment, red_amt,
+    route_length, add_cost
   )
 
 df_tidy |>
@@ -77,6 +100,15 @@ df_tidy |>
 df_tidy |>
   group_by(country) |>
   count()
+
+df_tidy <- df_tidy |>
+  mutate(
+    add_cost = if_else(treatment == "control", 0, add_cost)
+  ) |>
+  left_join(ticket_lookup, by = c("country", "route_length")) |>
+  mutate(
+    relative_added_cost = add_cost / ticket_cost
+  )
 
 df_tidy <- df_tidy |>
   pivot_longer(
@@ -223,8 +255,7 @@ df_demo <- map_dfr(
     eu_clim_conc,
     personal_income,
     flying_recent,
-    flying_recent_number,
-    add_cost
+    flying_recent_number
   )
 )
 
