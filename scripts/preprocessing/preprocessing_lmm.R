@@ -38,6 +38,107 @@ df_cn <- df_cn[
     df_cn$flying_recent_number <= cutoff,
 ]
 
+###################### sample description #################
+
+df_all <- bind_rows(df_ch, df_us, df_cn)
+
+summarize_age <- function(df) {
+  df |>
+    count(age) |>
+    mutate(share = n / sum(n)) |>
+    mutate(line = paste0(age, ": ", round(share * 100, 1), "%")) |>
+    pull(line)
+}
+
+summarize_gender <- function(df) {
+  df |>
+    count(gender) |>
+    mutate(share = n / sum(n)) |>
+    mutate(line = paste0(gender, ": ", round(share * 100, 1), "%")) |>
+    pull(line)
+}
+
+summarize_flying <- function(df) {
+
+  flights <- ifelse(
+    df$flying_ever == "no" | df$flying_recent == "no",
+    0,
+    df$flying_recent_number
+  )
+
+  median_val <- median(flights, na.rm = TRUE)
+  q25 <- quantile(flights, 0.25, na.rm = TRUE)
+  q75 <- quantile(flights, 0.75, na.rm = TRUE)
+  q90 <- quantile(flights, 0.90, na.rm = TRUE)
+
+  non_fliers <- mean(flights == 0, na.rm = TRUE)
+
+  c(
+    paste("Median flights:", round(median_val, 2)),
+    paste("25th percentile:", round(q25, 2)),
+    paste("75th percentile:", round(q75, 2)),
+    paste("90th percentile:", round(q90, 2)),
+    paste("Share non-fliers:", round(non_fliers * 100, 1), "%")
+  )
+}
+
+country_summary <- function(df, country_name) {
+
+  c(
+    paste0("----- ", country_name, " -----"),
+
+    "",
+    "Age distribution:",
+    summarize_age(df),
+
+    "",
+    "Gender distribution:",
+    summarize_gender(df),
+
+    "",
+    "Flying distribution:",
+    summarize_flying(df),
+
+    ""
+  )
+}
+
+total_n <- nrow(df_all)
+
+n_ch <- nrow(df_ch)
+n_us <- nrow(df_us)
+n_cn <- nrow(df_cn)
+
+summary_text <- c(
+
+  "Sample summary",
+  "================",
+
+  paste("Total sample size:", total_n),
+  paste("CH sample:", n_ch),
+  paste("US sample:", n_us),
+  paste("CN sample:", n_cn),
+
+  "",
+  paste("Outlier cutoff for flying_recent_number:", cutoff),
+  paste("Maximum removed value:", 235),
+
+  "",
+
+  country_summary(df_ch, "Switzerland"),
+  country_summary(df_us, "United States"),
+  country_summary(df_cn, "China")
+)
+
+writeLines(
+  summary_text,
+  here("output", "sample_summary.txt")
+)
+
+
+
+
+
 
 ###################### wtc, wtp, flights ##################
 
