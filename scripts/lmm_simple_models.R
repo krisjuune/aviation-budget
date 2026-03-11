@@ -54,107 +54,6 @@ data_flights <- data_flights |>
 
 ################## plot functions #####################
 
-plot_emmeans <- function(
-  emm,
-  main_text_size = 14,
-  plot_30 = TRUE,
-  alpha = 1,
-  title = NULL
-) {
-  data <- as.data.frame(emm)
-
-  if (!plot_30) {
-    data <- subset(data, red_amt != "30%")
-  }
-
-  ymin_col <- if ("asymp.LCL" %in% names(data)) "asymp.LCL" else "lower.CL"
-  ymax_col <- if ("asymp.UCL" %in% names(data)) "asymp.UCL" else "upper.CL"
-
-  ggplot(data, aes(
-    x = treatment,
-    y = emmean,
-    color = red_amt,
-    group = red_amt
-  )) +
-    geom_point(position = position_dodge(0.3), size = 3, alpha = alpha) +
-    geom_errorbar(
-      aes(
-        ymin = .data[[ymin_col]],
-        ymax = .data[[ymax_col]]
-      ),
-      width = 0.2,
-      position = position_dodge(0.3),
-      alpha = alpha
-    ) +
-    labs(
-      y = NULL,
-      x = NULL,
-      color = "Emissions reductions",
-      title = title
-    ) +
-    scale_color_viridis_d(
-      option = "plasma",
-      end = .8,
-    ) +
-    geom_hline(
-      yintercept = 2.5,
-      linetype = 2,
-      colour = "gray40",
-      linewidth = .3
-    ) +
-    ylim(1, 4) +
-    theme_classic() +
-    theme(text = element_text(size = main_text_size))
-}
-
-plot_pairwise_contrasts <- function(
-  emm,
-  plot_30 = TRUE,
-  control_only = FALSE,
-  no_control = FALSE,
-  main_text_size = 14,
-  alpha = 1
-) {
-  contrasts <- contrast(emm, method = "pairwise", by = "red_amt") |>
-    as.data.frame() |>
-    mutate(
-      lower.CL = estimate - 1.96 * SE,
-      upper.CL = estimate + 1.96 * SE,
-      sig = p.value < 0.05
-    )
-
-  if (!plot_30) {
-    contrasts <- subset(contrasts, red_amt != "30%")
-  }
-
-  if (control_only) {
-    contrasts <- contrasts[grepl("control", contrasts$contrast), ]
-  }
-
-  if (no_control) {
-    contrasts <- contrasts[!grepl("control", contrasts$contrast), ]
-  }
-
-  ggplot(contrasts, aes(x = estimate, y = contrast, color = red_amt)) +
-    geom_point(alpha = alpha) +
-    geom_errorbarh(aes(xmin = lower.CL, xmax = upper.CL), height = 0.1, alpha = alpha) +
-    geom_vline(
-      xintercept = 0,
-      linetype = 2,
-      color = "gray40",
-      linewidth = .3
-    ) +
-    facet_wrap(~ red_amt) +
-    scale_color_viridis_d(option = "plasma", end = .8) +
-    theme_classic() +
-    theme(text = element_text(size = main_text_size)) +
-    labs(
-      x = "Estimated difference",
-      y = "Contrast",
-      color = "Emissions reductions"
-    )
-}
-
 plot_flight_change <- function(
   emm,
   plot_30 = TRUE,
@@ -189,97 +88,55 @@ plot_flight_change <- function(
 
 ################## basic analysis #####################
 # willingness to reduce flying
-model <- lmer(
-  wtc ~ treatment * red_amt + fair_group_wtc + fair_self_wtc + (1 | country),
+model_wtc <- lmer(
+  wtc ~ treatment + red_amt + (1 | country),
   data = data_flights
 )
-summary(model)
-emm <- emmeans(model, ~ red_amt * treatment)
-contrast(emm, method = "pairwise", by = "red_amt")
 
-plot_wtc <- plot_emmeans(
-  emm,
-  plot_30 = FALSE,
-  title = "B. Willingness to change"
-)
-
-plot_wtc_contrasts <- plot_pairwise_contrasts(emm, plot_30 = FALSE) +
-  scale_x_continuous(limits = c(-1.2, 1.2))
+emm_wtc <- emmeans(model_wtc, ~ treatment)
+emm_wtc_redamt <- emmeans(model_wtc, ~ red_amt)
+contrast_wtc <- contrast(
+  emm_wtc,
+  method = "trt.vs.ctrl",
+  ref = "Control"
+) |>
+  as.data.frame() |>
+  as_tibble()
 
 # willingness to pay for SAFs
-model <- lmer(
-  wtp ~ treatment * red_amt + relative_added_cost + fair_group_wtc + fair_self_wtc + (1 | country),
+model_wtp <- lmer(
+  wtp ~ treatment + red_amt + relative_added_cost + (1 | country),
   data = data_flights
 )
-summary(model)
-emm <- emmeans(model, ~ treatment * red_amt)
 
-plot_wtp <- plot_emmeans(
-  emm,
-  plot_30 = FALSE,
-  title = "A. Willingness to pay"
-)
-
-plot_wtp_contrasts <- plot_pairwise_contrasts(
-  emm,
-  plot_30 = FALSE,
-  control_only = TRUE
-) +
-  scale_x_continuous(limits = c(-1.2, 1.2))
+emm_wtp <- emmeans(model_wtp, ~ treatment)
+emm_wtp_redamt <- emmeans(model_wtp, ~ red_amt)
+contrast_wtp <- contrast(
+  emm_wtp,
+  method = "trt.vs.ctrl",
+  ref = "Control"
+) |>
+  as.data.frame() |>
+  as_tibble()
 
 # change in planned flights
 model <- lmer(
   planned_flights ~ time * treatment * red_amt + (1 | id) + (1 | country),
   data = data_flights
 )
-summary(model)
-emm <- emmeans(model, ~ time | treatment * red_amt)
-plot_del_flights <- plot_flight_change(emm, plot_30 = FALSE)
 
-plot_wtc_combined <- (plot_wtc / plot_del_flights) +
-  plot_layout(guides = "collect", axis_titles = "collect") +
-  plot_annotation(tag_levels = "A")
-
-plot_redamt_combined <- (
-  plot_wtp | plot_wtc
-) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
 
 # save stuff
-ggsave(
-  plot = plot_wtc_contrasts,
-  here("output", "plot_wtc_contrasts.png"),
-  height = 6, width = 10
-)
-
-ggsave(
-  plot = plot_wtp,
-  here("output", "plot_wtp.png"),
-  height = 6, width = 10
-)
-
-ggsave(
-  plot = plot_wtp_contrasts,
-  here("output", "plot_wtp_contrasts.png"),
-  height = 6, width = 10
-)
-
-ggsave(
-  plot = plot_wtc_combined,
-  here("output", "plot_wtc_combined.png"),
-  height = 8, width = 10
-)
-
-ggsave(
-  plot = plot_redamt_combined,
-  here("output", "plot_redamt_combined.png"),
-  height = 6, width = 14
-)
+write.csv(emm_wtc, here("data", "emm_wtc.csv"))
+write.csv(emm_wtp, here("data", "emm_wtp.csv"))
+write.csv(emm_wtc_redamt, here("data", "emm_wtc_redamt.csv"))
+write.csv(emm_wtp_redamt, here("data", "emm_wtp_redamt.csv"))
+write.csv(contrast_wtc, here("data", "contr_wtc.csv"))
+write.csv(contrast_wtp, here("data", "contr_wtp.csv"))
 
 #################### assumptions #######################
 
 # check whether assumptions of normally distirbuted
 # residuals and random effects hold
-check_model(model)
-
+assumptions_check_wtc <- check_model(model_wtc)
+assumptions_check_wtp <- check_model(model_wtp)

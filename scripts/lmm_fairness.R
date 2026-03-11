@@ -7,6 +7,7 @@ library(purrr)
 library(forcats)
 library(tidyr)
 library(tidyverse)
+library(scales)
 library(here)
 library(colorspace)
 library(patchwork)
@@ -15,8 +16,8 @@ source(here("scripts", "lmm_simple_models.R"))
 data_fair <- read_csv(
   here("data", "wtc_wtp_fair_tidy.csv"),
   show_col_types = FALSE
-) |>
-  filter(!is.na(wtc))
+)
+
 
 ###### run model 
 
@@ -29,27 +30,34 @@ model <- lmer(
 
 # check model
 summary(model)
-group_trend <- emtrends(model, ~1, var = "fair_group_wtc")
-self_trend  <- emtrends(model, ~1, var = "fair_self_wtc")
-# main fairness WTC resuls:
-group_trend
-self_trend
 
 # run with fairness as outcome variable
 model_fair_group <- lmer(
-  fair_group_wtc ~ treatment * red_amt + (1 | country),
+  fair_group_wtp ~ treatment + (1 | country),
   data = data_fair
 )
 model_fair_self <- lmer(
-  fair_self_wtc ~ treatment * red_amt + (1 | country),
+  fair_self_wtp ~ treatment + (1 | country),
   data = data_fair
 )
 summary(model_fair_group)
 summary(model_fair_self)
-emm_group <- emmeans(model_fair_group, ~ treatment * red_amt)
-emm_self  <- emmeans(model_fair_self, ~ treatment * red_amt)
-pairs(emm_group)
-pairs(emm_self)
+emm_group <- emmeans(model_fair_group, ~ treatment)
+emm_self <- emmeans(model_fair_self, ~ treatment)
+contrast_group <- contrast(
+  emm_group,
+  method = "trt.vs.ctrl",
+  ref = "control"
+) |>
+  as.data.frame() |>
+  as_tibble()
+contrast_self <- contrast(
+  emm_self,
+  method = "trt.vs.ctrl",
+  ref = "control"
+) |>
+  as.data.frame() |>
+  as_tibble()
 
 # plot fairness results
 plot_self_fair <- plot_emmeans(emm_self, plot_30 = FALSE) +

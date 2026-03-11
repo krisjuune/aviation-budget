@@ -96,7 +96,7 @@ model_wtc <- lmer(
 )
 
 model_wtp <- lmer(
-  wtp ~ treatment * income_group +
+  wtp ~ treatment * income_group + relative_added_cost +
     (1 | country),
   data = data_controls
 )
@@ -123,7 +123,7 @@ model_wtc <- lmer(
 )
 
 model_wtp <- lmer(
-  wtp ~ treatment * flying_group +
+  wtp ~ treatment * flying_group + relative_added_cost +
     (1 | country),
   data = data_controls
 )
@@ -152,7 +152,7 @@ model_wtc <- lmer(
 )
 
 model_wtp <- lmer(
-  wtp ~ treatment * clim_concern +
+  wtp ~ treatment * clim_concern + relative_added_cost +
     (1 | country),
   data = data_controls
 )
@@ -304,7 +304,38 @@ contr_flights_clim <- contrast(
     treatment = factor(treatment, levels = c("egal", "limit", "prior", "prop"))
   )
 
+add_group_n <- function(emm_obj, data, by) {
+  by <- as.character(by)
+  
+  group_sizes <- data |>
+    filter(!is.na(.data[[by]])) |>
+    distinct(id, .data[[by]]) |>
+    group_by(.data[[by]]) |>
+    summarise(n = n(), .groups = "drop")
+  
+  emm_df <- as.data.frame(emm_obj) |>
+    as_tibble()
+  
+  emm_df <- emm_df |>
+    left_join(group_sizes, by = by)
+  
+  return(emm_df)
+}
 
+emm_wtc_income <- add_group_n(emm_wtc_income, data_controls, by = "income_group")
+emm_wtp_income <- add_group_n(emm_wtp_income, data_controls, by = "income_group")
+contr_wtc_income <- add_group_n(contr_wtc_income, data_controls, by = "income_group")
+contr_wtp_income <- add_group_n(contr_wtp_income, data_controls, by = "income_group")
+
+emm_wtc_flyer <- add_group_n(emm_wtc_flyer, data_controls, by = "flying_group")
+emm_wtp_flyer <- add_group_n(emm_wtp_flyer, data_controls, by = "flying_group")
+contr_wtc_flyer <- add_group_n(contr_wtc_flyer, data_controls, by = "flying_group")
+contr_wtp_flyer <- add_group_n(contr_wtp_flyer, data_controls, by = "flying_group")
+
+emm_wtc_clim <- add_group_n(emm_wtc_clim, data_controls, by = "clim_concern")
+emm_wtp_clim <- add_group_n(emm_wtp_clim, data_controls, by = "clim_concern")
+contr_wtc_clim <- add_group_n(contr_wtc_clim, data_controls, by = "clim_concern")
+contr_wtp_clim <- add_group_n(contr_wtp_clim, data_controls, by = "clim_concern")
 
 write.csv(emm_wtc_income, here("data", "emm_wtc_income.csv"))
 write.csv(emm_wtp_income, here("data", "emm_wtp_income.csv"))
@@ -323,197 +354,3 @@ write.csv(emm_wtp_clim, here("data", "emm_wtp_clim.csv"))
 write.csv(contr_wtc_clim, here("data", "contr_wtc_clim.csv"))
 write.csv(contr_wtp_clim, here("data", "contr_wtp_clim.csv"))
 write.csv(contr_flights_clim, here("data", "contr_flights_clim.csv"))
-
-
-
-
-# plot marginal means per treatment group
-plot_emmeans_subgroup <- function(
-  emm,
-  by,
-  legend_title = "Income group",
-  main_text_size = 14,
-  alpha = 1
-) {
-  data <- as.data.frame(emm)
-  by_sym <- ensym(by)
-
-  ymin_col <- if ("asymp.LCL" %in% names(data)) "asymp.LCL" else "lower.CL"
-  ymax_col <- if ("asymp.UCL" %in% names(data)) "asymp.UCL" else "upper.CL"
-
-  ggplot(data, aes(
-    x = treatment,
-    y = emmean,
-    color = !!by_sym,
-    group = !!by_sym
-  )) +
-    geom_point(position = position_dodge(0.3), size = 3, alpha = alpha) +
-    geom_errorbar(
-      aes(
-        ymin = .data[[ymin_col]],
-        ymax = .data[[ymax_col]]
-      ),
-      width = 0.2,
-      position = position_dodge(0.3),
-      alpha = alpha
-    ) +
-    labs(
-      y = NULL,
-      x = NULL, # was "Treatment" before
-      color = legend_title
-    ) +
-    scale_color_viridis_d(option = "plasma", end = .8) +
-    geom_hline(
-      yintercept = 2.5,
-      linetype = 2,
-      colour = "gray40",
-      linewidth = .3
-    ) +
-    ylim(1,4) +
-    theme_classic() +
-    theme(text = element_text(size = main_text_size))
-}
-
-plot_flights_subgroup <- function(
-  emm,
-  by,
-  legend_title = "Income group",
-  main_text_size = 14,
-  alpha = 1
-) {
-  data <- contrast(emm, method = "pairwise") |>
-    as.data.frame()
-
-  by_sym <- ensym(by)
-
-  ggplot(data, aes(
-      x = treatment,
-      y = estimate,
-      color = !!by_sym,
-      group = !!by_sym
-    )) +
-    geom_point(position = position_dodge(0.3), size = 3, alpha = alpha) +
-    geom_errorbar(
-      aes(
-        ymin = estimate - 1.96 * SE,
-        ymax = estimate + 1.96 * SE
-      ),
-      width = 0.2,
-      position = position_dodge(0.3),
-      alpha = alpha
-    ) +
-    labs(
-      y = NULL,
-      x = NULL, # was "Treatment" beofre
-      color = legend_title
-    ) +
-    scale_color_viridis_d(option = "plasma", end = .8) +
-    geom_hline(
-      yintercept = 0,
-      linetype = 2,
-      colour = "gray40",
-      linewidth = .3
-    ) +
-    ylim(1,4) +
-    theme_classic() +
-    theme(text = element_text(size = main_text_size))
-}
-
-plot_wtp_income <- plot_emmeans_subgroup(emm_wtp_income, by = income_group) +
-  labs(title = "A. Willingness to pay")
-plot_wtc_income <- plot_emmeans_subgroup(emm_wtc_income, by = income_group) +
-  labs(title = "B. Willingness to change")
-plot_flights_income <- plot_flights_subgroup(
-  emm_flights_income,
-  by = income_group
-) +
-  labs(title = "C. Change in planned flights")
-
-plot_income_subgroups <- (
-  plot_wtp_income / plot_wtc_income / plot_flights_income
-) +
-  plot_layout(guides = "collect", axis_titles = "collect")
-
-plot_income_subgroups <- (
-  plot_wtp_income | plot_wtc_income
-) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
-
-
-plot_wtp_flyer <- plot_emmeans_subgroup(
-  emm_wtp_flyer,
-  by = flying_group,
-  legend_title = "Flying behaviour"
-) +
-  labs(title = "A. Willingness to pay")
-
-plot_wtc_flyer <- plot_emmeans_subgroup(
-  emm_wtc_flyer,
-  by = flying_group,
-  legend_title = "Flying behaviour"
-) +
-  labs(title = "B. Willingness to change")
-
-plot_flights_flyer <- plot_flights_subgroup(
-  emm_flights_flyer,
-  by = flying_group,
-  legend_title = "Flying behaviour"
-) +
-  labs(title = "C. Change in planned flights")
-
-plot_flyer_subgroups <- (plot_wtp_flyer / plot_wtc_flyer / plot_flights_flyer) +
-  plot_layout(guides = "collect", axis_titles = "collect")
-
-plot_flyer_subgroups <- (plot_wtp_flyer | plot_wtc_flyer) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
-
-
-plot_wtp_clim <- plot_emmeans_subgroup(
-  emm_wtp_clim,
-  by = clim_concern,
-  legend_title = "Climate concern"
-) +
-  labs(title = "A. Willingness to pay")
-
-plot_wtc_clim <- plot_emmeans_subgroup(
-  emm_wtc_clim,
-  by = clim_concern,
-  legend_title = "Climate concern"
-) +
-  labs(title = "B. Willingness to change")
-
-plot_flights_clim <- plot_flights_subgroup(
-  emm_flights_clim,
-  by = clim_concern,
-  legend_title = "Climate concern"
-) +
-  labs(title = "C. Change in planned flights")
-
-plot_clim_subgroups <- (plot_wtp_clim / plot_wtc_clim / plot_flights_clim) +
-  plot_layout(guides = "collect", axis_titles = "collect")
-
-plot_clim_subgroups <- (plot_wtp_clim | plot_wtc_clim) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
-
-
-
-ggsave(
-  plot = plot_income_subgroups,
-  here("output", "plot_income_subgroups.png"),
-  height = 5, width = 14
-)
-
-ggsave(
-  plot = plot_flyer_subgroups,
-  here("output", "plot_flyer_subgroups.png"),
-  height = 5, width = 14
-)
-
-ggsave(
-  plot = plot_clim_subgroups,
-  here("output", "plot_clim_subgroups.png"),
-  height = 5, width = 14
-)
