@@ -10,6 +10,7 @@ library(forcats)
 library(tidyr)
 library(tidyverse)
 library(here)
+library(knitr)
 library(colorspace)
 library(patchwork)
 source(here("scripts", "lmm_simple_models.R"))
@@ -46,10 +47,29 @@ data_controls <- read_csv(
     income_decile = as.integer(income_decile)
   )
 
+data_fair <- read_csv(
+  here("data", "wtc_wtp_fair_tidy.csv"),
+  show_col_types = FALSE
+)
+
+fair_vars <- data_fair |>
+  select(
+    id,
+    fair_group_wtp,
+    fair_self_wtp,
+    fair_group_wtc,
+    fair_self_wtc
+  ) |>
+  distinct()
+
+data_controls <- data_controls |>
+  left_join(fair_vars, by = "id")
+
 ################ model covariates ##################
 
 model_wtc <- lmer(
-  wtc ~ treatment * red_amt +
+  wtc ~ treatment + red_amt +
+    fair_group_wtc + fair_self_wtc +
     clim_concern_score +
     income_decile +
     flying_recent_number +
@@ -58,20 +78,47 @@ model_wtc <- lmer(
 )
 
 model_wtp <- lmer(
-  wtp ~ treatment * red_amt +
+  wtp ~ treatment + red_amt +
+    fair_group_wtp + fair_self_wtp +
     clim_concern_score +
     income_decile +
     flying_recent_number +
+    relative_added_cost +
     (1 | country),
   data = data_controls
 )
 
 summary(model_wtc)
-summary(model_wtp)
+summary(model_wtp, correlation = TRUE)
 
-covariates <- c("clim_concern_score", "income_decile", "flying_recent_number")
-covariate_labels <- c(
-  clim_concern_score = "Climate concern",
+covariates_wtp <- c(
+  "fair_self_wtp",
+  "fair_group_wtp",
+  "clim_concern_score",
+  "income_decile",
+  "flying_recent_number"
+)
+
+covariate_labels_wtp <- c(
+  fair_self_wtp = "Personal fairness score",
+  fair_group_wtp = "Group fairness score",
+  clim_concern_score = "Climate concern sum score",
+  flying_recent_number = "Nr of flights per year",
+  income_decile = "Income decile"
+)
+
+covariates_wtc <- c(
+  "fair_self_wtc",
+  "fair_group_wtc",
+  "clim_concern_score",
+  "income_decile",
+  "flying_recent_number"
+)
+
+covariate_labels_wtc <- c(
+  fair_self_wtc = "Personal fairness score",
+  fair_group_wtc = "Group fairness score",
+  clim_concern_score = "Climate concern sum score",
   flying_recent_number = "Nr of flights per year",
   income_decile = "Income decile"
 )
@@ -84,74 +131,197 @@ plot_covariate_effects <- function(
   main_text_size = 14,
   title = NULL
 ) {
-  preds_all <- covariates |>
-    lapply(\(var) 
-      ggpredict(model, terms = var) |>
-        as.data.frame() |>
-        mutate(variable = var)
-    ) |>
-    bind_rows()
 
-  p <- ggplot(preds_all, aes(x = x, y = predicted)) +
-    geom_line() +
-    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
-    geom_hline(yintercept = 2.5, linetype = "dashed") +
-    facet_wrap(
-      ~ variable,
-      scales = "free_x",
-      labeller = if (!is.null(x_labels)) 
-        as_labeller(x_labels) 
-      else 
-        "label_value"
-    ) +
-    theme_classic() +
-    theme(
-      text = element_text(size = main_text_size),
-      strip.background = element_rect(linewidth = 0),
-      strip.text.x = element_text(size = main_text_size, face = "bold")
-    ) +
-    labs(
-      x = NULL,
-      y = response_label,
-      title = title
-    ) +
-    scale_x_continuous(
-      breaks = function(x) {
-        brks <- pretty(x, n = 5)
-        brks[brks %% 1 == 0]
-      }
-    ) +
-    ylim(0, 5) +
-    theme(text = element_text(size = main_text_size))
+    plots <- lapply(seq_along(covariates), function(i) {
 
-  return(p)
+    var <- covariates[i]
+
+    preds <- ggpredict(model, terms = var) |>
+      as.data.frame()
+
+    x_lab <- if (!is.null(x_labels) && var %in% names(x_labels)) {
+      x_labels[[var]]
+    } else {
+      var
+    }
+
+    y_lab <- if (i == 1) response_label else NULL
+
+    p <- ggplot(preds, aes(x = x, y = predicted)) +
+      geom_line(colour = "#3B4CC0") +
+      geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "#AAB0FF") +
+      geom_hline(yintercept = 2.5, linetype = "dashed") +
+      theme_classic() +
+      labs(
+        x = x_lab,
+        y = y_lab
+      ) +
+      scale_x_continuous(
+        breaks = function(x) {
+          brks <- pretty(x, n = 5)
+          brks[brks %% 1 == 0]
+        }
+      ) +
+      ylim(.25, 4.5) +
+      theme(text = element_text(size = main_text_size))
+
+    if (i != 1) {
+      p <- p + theme(
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()
+      )
+    }
+
+    return(p)
+  })
+  combined_plot <- wrap_plots(plots, nrow = 1) +
+    plot_annotation(title = title)
+
+  return(combined_plot)
 }
+
+
+
+
+
+plot_covariate_effects_bubbles <- function(
+  model,
+  covariates,
+  raw_data = NULL,
+  response_var = "wtc",
+  x_labels = NULL,
+  response_label = "Predicted response",
+  main_text_size = 14,
+  title = NULL
+) {
+
+  plots <- lapply(seq_along(covariates), function(i) {
+
+    var <- covariates[i]
+
+    preds <- ggpredict(model, terms = var) |>
+      as.data.frame()
+
+    x_lab <- if (!is.null(x_labels) && var %in% names(x_labels)) {
+      x_labels[[var]]
+    } else {
+      var
+    }
+
+    y_lab <- if (i == 1) response_label else NULL
+
+    p <- ggplot(preds, aes(x = x, y = predicted)) +
+      geom_line() +
+      geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+      geom_hline(yintercept = 2.5, linetype = "dashed") +
+      theme_classic() +
+      labs(
+        x = x_lab,
+        y = y_lab
+      ) +
+      scale_x_continuous(
+        breaks = function(x) {
+          brks <- pretty(x, n = 5)
+          brks[brks %% 1 == 0]
+        }
+      ) +
+      ylim(0.25, 4.5) +
+      theme(text = element_text(size = main_text_size))
+
+
+    # Determine if the covariate is discrete
+    if (is.integer(raw_data[[var]]) || is.factor(raw_data[[var]]) || length(unique(raw_data[[var]])) <= 6) {
+
+      # Bubble plot for discrete covariates
+      df_bubbles <- raw_data %>%
+        count(x = .data[[var]], y = wtc) # change wtc to wtp if plotting WTP
+
+      p <- p + 
+        geom_point(
+          data = df_bubbles,
+          aes(x = x, y = y, size = n),
+          color = "grey40",
+          alpha = 0.3
+        ) +
+        scale_size_area(max_size = 5)
+
+    } else {
+
+      # Optional: add quasirandom jitter for continuous covariates
+      p <- p + geom_jitter(data = raw_data, aes_string(x = var, y = "wtc"),
+                           width = 0.2, height = 0, alpha = 0.1, color = "grey50")
+    }
+
+    if (i != 1) {
+      p <- p + theme(
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()
+      )
+    }
+
+    return(p)
+  })
+
+  combined_plot <- wrap_plots(plots, nrow = 1) +
+    plot_annotation(title = title)
+
+  return(combined_plot)
+}
+
+# plot_wtc_covariates <- plot_covariate_effects(
+#   model_wtc,
+#   covariates_wtc,
+#   raw_data = data_controls,
+#   outcome = "wtc",
+#   x_labels = covariate_labels_wtc,
+#   response_label = "Predicted score",
+#   title = "B. Predicted willingness to change"
+# )
+
 
 plot_wtc_covariates <- plot_covariate_effects(
   model_wtc,
-  covariates,
-  x_labels = covariate_labels,
-  response_label = NULL,
+  covariates_wtc,
+  x_labels = covariate_labels_wtc,
+  response_label = "Predicted WTP score",
   title = "B. Predicted willingness to change"
-) + theme(
-  strip.text.x = element_blank()
 )
 
 plot_wtp_covariates <- plot_covariate_effects(
   model_wtp,
-  covariates,
-  x_labels = covariate_labels,
-  response_label = NULL,
+  covariates_wtp,
+  x_labels = covariate_labels_wtp,
+  response_label = "Predicted WTC score",
   title = "A. Predicted willingness to pay"
 )
 
-plot_covariates <- plot_wtp_covariates / plot_wtc_covariates
+title_wtp <- wrap_elements(
+  grid::textGrob(
+    "A. Predicted willingness to pay for SAFs",
+    x = 0, hjust = 0,
+    gp = grid::gpar(fontsize = 14, fontface = "bold")
+  )
+)
 
-emm <- emmeans(model_wtc, ~ red_amt * treatment)
-plot_emmeans(emm, plot_30 = FALSE)
-emm <- emmeans(model_wtp, ~ red_amt * treatment)
-plot_emmeans(emm, plot_30 = FALSE)
+title_wtc <- wrap_elements(
+  grid::textGrob(
+    "B. Predicted willingness to constrain own flying",
+    x = 0, hjust = 0,
+    gp = grid::gpar(fontsize = 14, fontface = "bold")
+  )
+)
 
+plot_covariates <-
+  title_wtp /
+  plot_wtp_covariates /
+  title_wtc /
+  plot_wtc_covariates +
+  plot_layout(heights = c(0.1, 1, 0.1, 1))
+
+
+################### save stuff ######################
 ggsave(
   plot = plot_wtc_covariates,
   here("output", "plot_wtc_covariates.png"),
@@ -168,56 +338,4 @@ ggsave(
   plot = plot_covariates,
   here("output", "plot_covariates.png"),
   height = 7, width = 14
-)
-
-################# income and flying #####################
-# income and flying behaviour correlation
-
-# filter missing
-data_controls_num <- data_controls |>
-  filter(!is.na(income_decile)) |>
-  mutate(
-    flying_recent_number = replace_na(flying_recent_number, 0),
-    country = recode(
-      country,
-      "ch" = "Switzerland",
-      "cn" = "China",
-      "us" = "United States"
-    )
-  )
-
-corr_income_flying <- data_controls_num |>
-  group_by(country) |>
-  summarise(
-    spearman_rho = cor(income_decile, flying_recent_number, method = "spearman")
-  )
-
-country_income_table <- data_controls_num |>
-  count(country, income_decile)
-
-plot_income_flying <- ggplot(data_controls_num, aes(
-  x = flying_recent_number,
-  y = factor(income_decile),
-  fill = factor(income_decile)
-)) +
-  geom_density_ridges(alpha = 0.6, scale = 0.9) +
-  facet_wrap(~country, nrow = 1) +
-  coord_cartesian(xlim = c(0, 25)) +
-  labs(
-    x = "Number of flights (last 12 months)",
-    y = "Income decile"
-  ) +
-  theme_classic() +
-  scale_fill_viridis_d(option = "plasma", guide = "none") +
-  theme(
-    text = element_text(size = main_text_size),
-    strip.background = element_blank(),
-    strip.text = element_text(face = "bold")
-  )
-
-write_csv(corr_income_flying, here("data", "corr_income_flying.csv"))
-ggsave(
-  plot = plot_income_flying,
-  here("output", "plot_income_flying.png"),
-  height = 10, width = 10
 )
