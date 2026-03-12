@@ -28,9 +28,9 @@ data_controls <- read_csv(
       levels = c("low", "mid", "high")
     ),
     flying_group = case_when(
-      flying_recent == "no" ~ "non-flyer",
-      flying_recent_number <= 6 ~ "average flyer",
-      flying_recent_number > 6 ~ "frequent flyer",
+      flying_recent == "no" | flying_ever == "no" ~ "non-flyer",
+      flying_recent_number < 6 ~ "average flyer",
+      flying_recent_number >= 6 ~ "frequent flyer",
       TRUE ~ NA_character_
     ),
     flying_group = factor(

@@ -14,22 +14,22 @@ library(patchwork)
 standardize_emm_columns <- function(emm_df) {
   emm_df <- emm_df |>
     rename(
-      asymp.LCL = dplyr::case_when(
+      asymp.LCL = case_when(
         "asymp.LCL" %in% colnames(emm_df) ~ "asymp.LCL",
         "lower.CL" %in% colnames(emm_df) ~ "lower.CL",
         TRUE ~ NA_character_
       ),
-      asymp.UCL = dplyr::case_when(
+      asymp.UCL = case_when(
         "asymp.UCL" %in% colnames(emm_df) ~ "asymp.UCL",
         "upper.CL" %in% colnames(emm_df) ~ "upper.CL",
         TRUE ~ NA_character_
       )
     )
   if ("lower.CL" %in% colnames(emm_df)) {
-    emm_df <- dplyr::rename(emm_df, asymp.LCL = lower.CL)
+    emm_df <- rename(emm_df, asymp.LCL = lower.CL)
   }
   if ("upper.CL" %in% colnames(emm_df)) {
-    emm_df <- dplyr::rename(emm_df, asymp.UCL = upper.CL)
+    emm_df <- rename(emm_df, asymp.UCL = upper.CL)
   }
   return(emm_df)
 }
@@ -78,15 +78,15 @@ emm_wtc_income <- read_csv(
       )
   )
 
-emm_wtp_flyer <- read_csv(
-  here("data", "emm_wtp_flyer.csv"), show_col_types = FALSE
+emm_wtp_flier <- read_csv(
+  here("data", "emm_wtp_flier.csv"), show_col_types = FALSE
 ) |>
   standardize_emm_columns() |>
   mutate(
     flying_group = factor(
       flying_group,
-      levels = c("non-flyer", "average flyer", "frequent flyer"),
-      labels = c("Non-flyer", "Average flyer", "Frequent flyer")
+      levels = c("non-flier", "average flier", "frequent flier"),
+      labels = c("Non-flier", "Average flier", "Frequent flier")
     ),
     treatment = factor(treatment) |>
       fct_recode(
@@ -98,15 +98,15 @@ emm_wtp_flyer <- read_csv(
       )
   )
 
-emm_wtc_flyer <- read_csv(
-  here("data", "emm_wtc_flyer.csv"), show_col_types = FALSE
+emm_wtc_flier <- read_csv(
+  here("data", "emm_wtc_flier.csv"), show_col_types = FALSE
 ) |>
   standardize_emm_columns() |>
   mutate(
     flying_group = factor(
       flying_group,
-      levels = c("non-flyer", "average flyer", "frequent flyer"),
-      labels = c("Non-flyer", "Average flyer", "Frequent flyer")
+      levels = c("non-flier", "average flier", "frequent flier"),
+      labels = c("Non-flier", "Average flier", "Frequent flier")
     ),
     treatment = factor(treatment) |>
       fct_recode(
@@ -226,14 +226,14 @@ contr_wtc_income <- read_csv(
       )
   )
 
-contr_wtp_flyer <- read_csv(
-  here("data", "contr_wtp_flyer.csv"), show_col_types = FALSE
+contr_wtp_flier <- read_csv(
+  here("data", "contr_wtp_flier.csv"), show_col_types = FALSE
 ) |>
   mutate(
     flying_group = factor(
       flying_group,
-      levels = c("non-flyer", "average flyer", "frequent flyer"),
-      labels = c("Non-flyer", "Average flyer", "Frequent flyer")
+      levels = c("non-flier", "average flier", "frequent flier"),
+      labels = c("Non-flier", "Average flier", "Frequent flier")
     ),
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
@@ -245,14 +245,14 @@ contr_wtp_flyer <- read_csv(
       )
   )
 
-contr_wtc_flyer <- read_csv(
-  here("data", "contr_wtc_flyer.csv"), show_col_types = FALSE
+contr_wtc_flier <- read_csv(
+  here("data", "contr_wtc_flier.csv"), show_col_types = FALSE
 ) |>
   mutate(
     flying_group = factor(
       flying_group,
-      levels = c("non-flyer", "average flyer", "frequent flyer"),
-      labels = c("Non-flyer", "Average flyer", "Frequent flyer")
+      levels = c("non-flier", "average flier", "frequent flier"),
+      labels = c("Non-flier", "Average flier", "Frequent flier")
     ),
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
@@ -310,11 +310,11 @@ contr_delta_income <- read_csv(
     income_group = factor(income_group, levels = c("low", "mid", "high"))
   )
 
-contr_delta_flyer <- read_csv(
-  here("data", "contr_flights_flyer.csv"), show_col_types = FALSE
+contr_delta_flier <- read_csv(
+  here("data", "contr_flights_flier.csv"), show_col_types = FALSE
 ) |>
   mutate(
-    flying_group = factor(flying_group, levels = c("non-flyer", "average flyer", "frequent flyer"))
+    flying_group = factor(flying_group, levels = c("non-flier", "average flier", "frequent flier"))
   )
 
 contr_delta_clim <- read_csv(
@@ -379,13 +379,13 @@ scale_income <- make_subgroup_scale(
   legend_title = "Income group"
 )
 
-subgroups_flyer <- emm_wtp_flyer |>
+subgroups_flier <- emm_wtp_flier |>
   mutate(label = paste0(flying_group, " (n = ", n, ")")) |>
   distinct(label) |>
   pull(label)
 
-scale_flyer <- make_subgroup_scale(
-  subgroups = subgroups_flyer,
+scale_flier <- make_subgroup_scale(
+  subgroups = subgroups_flier,
   legend_title = "Flying behaviour"
 )
 
@@ -501,19 +501,19 @@ plot_wtc_income <- plot_emmeans_subgroup(
 
 
 
-plot_wtp_flyer <- plot_emmeans_subgroup(
-  emm_subgroup = emm_wtp_flyer,
+plot_wtp_flier <- plot_emmeans_subgroup(
+  emm_subgroup = emm_wtp_flier,
   emm_overall = emm_wtp,
   by = "flying_group",
   legend_title = "Flying behaviour",
-  color_scale = scale_flyer
+  color_scale = scale_flier
 ) + labs(title = "A. Willingness to pay for SAFs")
-plot_wtc_flyer <- plot_emmeans_subgroup(
-  emm_subgroup = emm_wtc_flyer,
+plot_wtc_flier <- plot_emmeans_subgroup(
+  emm_subgroup = emm_wtc_flier,
   emm_overall = emm_wtc,
   by = "flying_group",
   legend_title = "Flying behaviour",
-  color_scale = scale_flyer
+  color_scale = scale_flier
 ) + labs(title = "B. Willingness to constrain own flying")
 
 
@@ -685,20 +685,20 @@ plot_contr_wtc_income <- plot_contrasts_subgroup(
   color_scale = scale_income
 )
 
-plot_contr_wtp_flyer <- plot_contrasts_subgroup(
-  contr_subgroup = contr_wtp_flyer,
+plot_contr_wtp_flier <- plot_contrasts_subgroup(
+  contr_subgroup = contr_wtp_flier,
   contr_overall  = contr_wtp,
   by = "flying_group",
   legend_title = "Flying behaviour",
-  color_scale = scale_flyer
+  color_scale = scale_flier
 )
 
-plot_contr_wtc_flyer <- plot_contrasts_subgroup(
-  contr_subgroup = contr_wtc_flyer,
+plot_contr_wtc_flier <- plot_contrasts_subgroup(
+  contr_subgroup = contr_wtc_flier,
   contr_overall  = contr_wtc,
   by = "flying_group",
   legend_title = "Flying behaviour",
-  color_scale = scale_flyer
+  color_scale = scale_flier
 )
 
 plot_contr_wtp_clim <- plot_contrasts_subgroup(
@@ -725,8 +725,8 @@ plot_income_emm_contr <- (plot_wtp_income | plot_contr_wtp_income) /
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
 
-plot_flyer_emm_contr <- (plot_wtp_flyer | plot_contr_wtp_flyer) /
-      (plot_wtc_flyer | plot_contr_wtc_flyer) +
+plot_flier_emm_contr <- (plot_wtp_flier | plot_contr_wtp_flier) /
+      (plot_wtc_flier | plot_contr_wtc_flier) +
       plot_layout(guides = "collect", axis_titles = "collect") &
       theme(legend.position = "bottom")
 
@@ -746,8 +746,8 @@ ggsave(
 )
 
 ggsave(
-  plot = plot_flyer_emm_contr,
-  here("output", "plot_flyer_emm_contr.png"),
+  plot = plot_flier_emm_contr,
+  here("output", "plot_flier_emm_contr.png"),
   height = 10, width = 15
 )
 

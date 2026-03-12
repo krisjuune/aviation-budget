@@ -105,12 +105,23 @@ contrast_wtc <- contrast(
 
 # willingness to pay for SAFs
 model_wtp <- lmer(
-  wtp ~ treatment + red_amt + relative_added_cost + (1 | country),
+  wtp ~ treatment + red_amt +
+    relative_added_cost +
+    (1 | country),
+  data = data_flights
+)
+
+model_wtp_haul <- lmer(
+  wtp ~ treatment + red_amt + route_length +
+    relative_added_cost +
+    (1 | country),
   data = data_flights
 )
 
 emm_wtp <- emmeans(model_wtp, ~ treatment)
 emm_wtp_redamt <- emmeans(model_wtp, ~ red_amt)
+emm_wtp_haul <- emmeans(model_wtp_haul, ~ route_length)
+
 contrast_wtp <- contrast(
   emm_wtp,
   method = "trt.vs.ctrl",
@@ -131,6 +142,7 @@ write.csv(emm_wtc, here("data", "emm_wtc.csv"))
 write.csv(emm_wtp, here("data", "emm_wtp.csv"))
 write.csv(emm_wtc_redamt, here("data", "emm_wtc_redamt.csv"))
 write.csv(emm_wtp_redamt, here("data", "emm_wtp_redamt.csv"))
+write.csv(emm_wtp_haul, here("data", "emm_wtp_haul.csv"))
 write.csv(contrast_wtc, here("data", "contr_wtc.csv"))
 write.csv(contrast_wtp, here("data", "contr_wtp.csv"))
 

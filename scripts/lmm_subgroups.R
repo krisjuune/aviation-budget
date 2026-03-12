@@ -15,7 +15,7 @@ library(patchwork)
 #flying_recent_number quantiles not accounting for those who did not fly at all
 #25% 50% 75%
 #  2   4   6
-#non-flyer  average flyer frequent flyer (>6)
+#non-flier  average flier frequent flier (>6)
 #   1172           3516            790
 #low  mid high
 #730 2086 1684
@@ -37,14 +37,14 @@ data_controls <- read_csv(
       levels = c("low", "mid", "high")
     ),
     flying_group = case_when(
-      flying_recent == "no" ~ "non-flyer",
-      flying_recent_number <= 6 ~ "average flyer",
-      flying_recent_number > 6 ~ "frequent flyer",
+      flying_recent == "no" | flying_ever == "no" ~ "non-flier",
+      flying_recent_number < 6 ~ "average flier",
+      flying_recent_number >= 6 ~ "frequent flier",
       TRUE ~ NA_character_
     ),
     flying_group = factor(
       flying_group,
-      levels = c("non-flyer", "average flyer", "frequent flyer")
+      levels = c("non-flier", "average flier", "frequent flier")
     ),
     treatment = factor(treatment) |>
       fct_recode(
@@ -134,10 +134,10 @@ model_flights <- lmer(
   data = data_controls
 )
 
-emm_wtc_flyer <- emmeans(model_wtc, ~ flying_group * treatment)
-emm_wtp_flyer <- emmeans(model_wtp, ~ flying_group * treatment)
-emm_flights_flyer <- emmeans(model_flights, ~ time | flying_group * treatment)
-emm_time_flyer <- emmeans(
+emm_wtc_flier <- emmeans(model_wtc, ~ flying_group * treatment)
+emm_wtp_flier <- emmeans(model_wtp, ~ flying_group * treatment)
+emm_flights_flier <- emmeans(model_flights, ~ time | flying_group * treatment)
+emm_time_flier <- emmeans(
   model_flights,
   ~ time,
   by = c("flying_group", "treatment")
@@ -198,8 +198,8 @@ contr_wtp_income <- contrast(
     treatment = factor(treatment, levels = c("egal", "limit", "prior", "prop"))
   )
 
-contr_wtc_flyer <- contrast(
-  emm_wtc_flyer, method = "trt.vs.ctrl",
+contr_wtc_flier <- contrast(
+  emm_wtc_flier, method = "trt.vs.ctrl",
   ref = 1,
   by = "flying_group"
 )  |>
@@ -210,8 +210,8 @@ contr_wtc_flyer <- contrast(
     treatment = factor(treatment, levels = c("egal", "limit", "prior", "prop"))
   )
 
-contr_wtp_flyer <- contrast(
-  emm_wtp_flyer, method = "trt.vs.ctrl",
+contr_wtp_flier <- contrast(
+  emm_wtp_flier, method = "trt.vs.ctrl",
   ref = 1,
   by = "flying_group"
 )  |>
@@ -265,14 +265,14 @@ contr_flights_income <- contrast(
     treatment = factor(treatment, levels = c("egal", "limit", "prior", "prop"))
   )
 
-emm_delta_flyer <- contrast(
-  emm_time_flyer,
+emm_delta_flier <- contrast(
+  emm_time_flier,
   method = list("delta" = c(-1, 1)),
   by = c("treatment", "flying_group")
 )
 
-contr_flights_flyer <- contrast(
-  emm_delta_flyer,
+contr_flights_flier <- contrast(
+  emm_delta_flier,
   method = "trt.vs.ctrl",
   ref = 1,
   by = "flying_group"
@@ -327,10 +327,10 @@ emm_wtp_income <- add_group_n(emm_wtp_income, data_controls, by = "income_group"
 contr_wtc_income <- add_group_n(contr_wtc_income, data_controls, by = "income_group")
 contr_wtp_income <- add_group_n(contr_wtp_income, data_controls, by = "income_group")
 
-emm_wtc_flyer <- add_group_n(emm_wtc_flyer, data_controls, by = "flying_group")
-emm_wtp_flyer <- add_group_n(emm_wtp_flyer, data_controls, by = "flying_group")
-contr_wtc_flyer <- add_group_n(contr_wtc_flyer, data_controls, by = "flying_group")
-contr_wtp_flyer <- add_group_n(contr_wtp_flyer, data_controls, by = "flying_group")
+emm_wtc_flier <- add_group_n(emm_wtc_flier, data_controls, by = "flying_group")
+emm_wtp_flier <- add_group_n(emm_wtp_flier, data_controls, by = "flying_group")
+contr_wtc_flier <- add_group_n(contr_wtc_flier, data_controls, by = "flying_group")
+contr_wtp_flier <- add_group_n(contr_wtp_flier, data_controls, by = "flying_group")
 
 emm_wtc_clim <- add_group_n(emm_wtc_clim, data_controls, by = "clim_concern")
 emm_wtp_clim <- add_group_n(emm_wtp_clim, data_controls, by = "clim_concern")
@@ -343,11 +343,11 @@ write.csv(contr_wtc_income, here("data", "contr_wtc_income.csv"))
 write.csv(contr_wtp_income, here("data", "contr_wtp_income.csv"))
 write.csv(contr_flights_income, here("data", "contr_flights_income.csv"))
 
-write.csv(emm_wtc_flyer, here("data", "emm_wtc_flyer.csv"))
-write.csv(emm_wtp_flyer, here("data", "emm_wtp_flyer.csv"))
-write.csv(contr_wtc_flyer, here("data", "contr_wtc_flyer.csv"))
-write.csv(contr_wtp_flyer, here("data", "contr_wtp_flyer.csv"))
-write.csv(contr_flights_flyer, here("data", "contr_flights_flyer.csv"))
+write.csv(emm_wtc_flier, here("data", "emm_wtc_flier.csv"))
+write.csv(emm_wtp_flier, here("data", "emm_wtp_flier.csv"))
+write.csv(contr_wtc_flier, here("data", "contr_wtc_flier.csv"))
+write.csv(contr_wtp_flier, here("data", "contr_wtp_flier.csv"))
+write.csv(contr_flights_flier, here("data", "contr_flights_flier.csv"))
 
 write.csv(emm_wtc_clim, here("data", "emm_wtc_clim.csv"))
 write.csv(emm_wtp_clim, here("data", "emm_wtp_clim.csv"))
