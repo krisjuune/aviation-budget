@@ -51,9 +51,8 @@ emm_wtp_income <- read_csv(
     ),
     treatment = factor(treatment) |>
       fct_recode(
-        "Base price" = "Control",
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -72,7 +71,7 @@ emm_wtc_income <- read_csv(
     treatment = factor(treatment) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -90,9 +89,8 @@ emm_wtp_flier <- read_csv(
     ),
     treatment = factor(treatment) |>
       fct_recode(
-        "Base price" = "Control",
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -111,7 +109,7 @@ emm_wtc_flier <- read_csv(
     treatment = factor(treatment) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -129,9 +127,8 @@ emm_wtp_clim <- read_csv(
     ),
     treatment = factor(treatment) |>
       fct_recode(
-        "Base price" = "Control",
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -150,7 +147,7 @@ emm_wtc_clim <- read_csv(
     treatment = factor(treatment) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -164,7 +161,7 @@ emm_wtc <- read_csv(
     treatment = factor(treatment) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -177,9 +174,8 @@ emm_wtp <- read_csv(
   mutate(
     treatment = factor(treatment) |>
       fct_recode(
-        "Base price" = "Control",
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -201,7 +197,7 @@ contr_wtp_income <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -220,7 +216,7 @@ contr_wtc_income <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -239,7 +235,7 @@ contr_wtp_flier <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -258,7 +254,7 @@ contr_wtc_flier <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -277,7 +273,7 @@ contr_wtp_clim <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -296,7 +292,7 @@ contr_wtc_clim <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -332,7 +328,7 @@ contr_wtc <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Equal budget" = "Egalitarianism",
-        "Frequent flying cap" = "Limitarianism",
+        "Frequent-flying cap" = "Limitarianism",
         "Tourism cap" = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
@@ -346,7 +342,7 @@ contr_wtp <- read_csv(
     contrast = factor(contrast) |>
       fct_recode(
         "Income-based tax" = "Egalitarianism",
-        "Frequent flying tax" = "Limitarianism",
+        "Frequent-flying tax" = "Limitarianism",
         "Tourism tax" = "Prioritarianism",
         "Flying tax" = "Proportionalism"
       )
@@ -489,14 +485,14 @@ plot_wtp_income <- plot_emmeans_subgroup(
   by = "income_group",
   legend_title = "Income group",
   color_scale = scale_income
-) + labs(title = "A. Willingness to pay for SAFs for SAFs")
+) + labs(title = "A. Effect of tax designs on willingness to pay")
 plot_wtc_income <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_income,
   emm_overall = emm_wtc,
   by = "income_group",
   legend_title = "Income group",
   color_scale = scale_income
-) + labs(title = "B. Willingness to constrain own flying")
+) + labs(title = "B. Effect of budget designs on willingness to change")
 
 
 
@@ -507,14 +503,14 @@ plot_wtp_flier <- plot_emmeans_subgroup(
   by = "flying_group",
   legend_title = "Flying behaviour",
   color_scale = scale_flier
-) + labs(title = "A. Willingness to pay for SAFs")
+) + labs(title = "A. Effect of tax designs on willingness to pay")
 plot_wtc_flier <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_flier,
   emm_overall = emm_wtc,
   by = "flying_group",
   legend_title = "Flying behaviour",
   color_scale = scale_flier
-) + labs(title = "B. Willingness to constrain own flying")
+) + labs(title = "B. Effect of budget designs on willingness to change")
 
 
 plot_wtp_clim <- plot_emmeans_subgroup(
@@ -523,14 +519,14 @@ plot_wtp_clim <- plot_emmeans_subgroup(
   by = "clim_concern",
   legend_title = "Climate concern",
   color_scale = scale_clim
-) + labs(title = "A. Willingness to pay for SAFs")
+) + labs(title = "A. Effect of tax designs on willingness to pay")
 plot_wtc_clim <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_clim,
   emm_overall = emm_wtc,
   by = "clim_concern",
   legend_title = "Climate concern",
   color_scale = scale_clim
-) + labs(title = "B. Willingness to constrain own flying")
+) + labs(title = "B. Effect of budget designs on willingness to change")
 
 
 ################### delta flights ##################

@@ -285,7 +285,7 @@ plot_wtc_covariates <- plot_covariate_effects(
   model_wtc,
   covariates_wtc,
   x_labels = covariate_labels_wtc,
-  response_label = "Predicted WTP score",
+  response_label = "Predicted WTC",
   title = "B. Predicted willingness to change"
 )
 
@@ -293,13 +293,13 @@ plot_wtp_covariates <- plot_covariate_effects(
   model_wtp,
   covariates_wtp,
   x_labels = covariate_labels_wtp,
-  response_label = "Predicted WTC score",
+  response_label = "Predicted WTP",
   title = "A. Predicted willingness to pay"
 )
 
 title_wtp <- wrap_elements(
   grid::textGrob(
-    "A. Predicted willingness to pay for SAFs",
+    "A. Predicted willingness to pay",
     x = 0, hjust = 0,
     gp = grid::gpar(fontsize = 14, fontface = "bold")
   )
@@ -307,7 +307,7 @@ title_wtp <- wrap_elements(
 
 title_wtc <- wrap_elements(
   grid::textGrob(
-    "B. Predicted willingness to constrain own flying",
+    "B. Predicted willingness to change",
     x = 0, hjust = 0,
     gp = grid::gpar(fontsize = 14, fontface = "bold")
   )
@@ -322,17 +322,6 @@ plot_covariates <-
 
 
 ################### save stuff ######################
-ggsave(
-  plot = plot_wtc_covariates,
-  here("output", "plot_wtc_covariates.png"),
-  height = 6, width = 10
-)
-
-ggsave(
-  plot = plot_wtp_covariates,
-  here("output", "plot_wtp_covariates.png"),
-  height = 6, width = 10
-)
 
 ggsave(
   plot = plot_covariates,
