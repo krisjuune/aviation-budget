@@ -15,7 +15,7 @@ data_fair_wtc <- data_fair |>
       fct_recode(
         "Control" = "control",
         "Equal budget" = "egal",
-        "Frequent flying cap" = "limit",
+        "Frequent-flying cap" = "limit",
         "Tourism cap" = "prior",
         "Proportional reduction" = "prop"
       )
@@ -29,7 +29,7 @@ data_fair_wtp <- data_fair |>
       fct_recode(
         "Control" = "control",
         "Income-based tax" = "egal",
-        "Frequent flying tax" = "limit",
+        "Frequent-flying tax" = "limit",
         "Tourism tax" = "prior",
         "Flying tax" = "prop"
       )
@@ -79,6 +79,16 @@ plot_fairness <- function(data, self_var, group_var) {
         levels = c("Personal fairness", "Group fairness")
       )
     )
+  
+  fairness_means <- fairness_long |>
+    group_by(treatment, fairness_type) |>
+    summarise(mean_score = mean(score, na.rm = TRUE), .groups = "drop") |>
+    mutate(
+      fairness_type = factor(
+        fairness_type,
+        levels = c("Personal fairness", "Group fairness")
+      )
+    )
 
   p <- ggplot(
     fairness_prop,
@@ -112,6 +122,19 @@ plot_fairness <- function(data, self_var, group_var) {
       strip.text.x = element_text(size = 14, face = "bold")
     )
 
+  p <- p +
+    geom_text(
+      data = fairness_means,
+      aes(
+        x = treatment,
+        y = 1.06,
+        label = paste0("μ = ", sprintf("%.2f", mean_score))
+      ),
+      inherit.aes = FALSE,
+      size = 3.5
+    ) +
+    expand_limits(y = 1.1)
+
   return(p)
 }
 
@@ -136,6 +159,80 @@ fairness_scores <- fairness_wtp / fairness_wtc +
 ggsave(
   plot = fairness_scores,
   here("output", "fairness_scores.png"),
-  height = 7,
+  height = 6,
   width = 14
+)
+
+################ mean scores #############
+
+summarise_fairness_means <- function(data, self_var, group_var) {
+
+  data |>
+    filter(time == "post", treatment != "Control") |>
+    summarise(
+      personal_mean = mean({{self_var}}, na.rm = TRUE),
+      group_mean = mean({{group_var}}, na.rm = TRUE),
+      .by = treatment
+    ) |>
+    mutate(
+      personal_mean = round(personal_mean, 2),
+      group_mean = round(group_mean, 2)
+    )
+}
+
+write_fairness_report <- function(wtp_summary, wtc_summary, path) {
+
+  lines <- c(
+    "Personal and group fairness mean scores",
+    "",
+    "Aviation tax"
+  )
+
+  for(i in seq_len(nrow(wtp_summary))) {
+
+    lines <- c(
+      lines,
+      paste0(
+        tolower(wtp_summary$treatment[i]), ": personal ",
+        wtp_summary$personal_mean[i],
+        " & group ",
+        wtp_summary$group_mean[i]
+      )
+    )
+  }
+
+  lines <- c(lines, "", "Aviation budget")
+
+  for(i in seq_len(nrow(wtc_summary))) {
+
+    lines <- c(
+      lines,
+      paste0(
+        tolower(wtc_summary$treatment[i]), ": personal ",
+        wtc_summary$personal_mean[i],
+        " & group ",
+        wtc_summary$group_mean[i]
+      )
+    )
+  }
+
+  writeLines(lines, path)
+}
+
+fairness_means_wtp <- summarise_fairness_means(
+  data_fair_wtp,
+  fair_self_wtp,
+  fair_group_wtp
+)
+
+fairness_means_wtc <- summarise_fairness_means(
+  data_fair_wtc,
+  fair_self_wtc,
+  fair_group_wtc
+)
+
+write_fairness_report(
+  fairness_means_wtp,
+  fairness_means_wtc,
+  here("output", "fairness_means.txt")
 )
