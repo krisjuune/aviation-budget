@@ -1,5 +1,6 @@
 library(dplyr)
 library(ggplot2)
+library(ggtext)
 library(rlang)
 library(viridis)
 library(purrr)
@@ -9,6 +10,7 @@ library(tidyverse)
 library(here)
 library(colorspace)
 library(patchwork)
+library(emmeans)
 
 
 standardize_emm_columns <- function(emm_df) {
@@ -34,7 +36,13 @@ standardize_emm_columns <- function(emm_df) {
   return(emm_df)
 }
 
-
+theme_main <- function(main_text_size = 14) {
+  theme_classic() +
+    theme(
+      text = element_text(size = main_text_size),
+      plot.title = element_text(face = "bold")
+    )
+}
 
 ############## read emmm files ###############
 
@@ -396,6 +404,41 @@ scale_clim <- make_subgroup_scale(
 )
 
 
+############# overall plots #################
+
+plot_emmeans_overall <- function(emm, title, main_text_size = 14) {
+  ymin_col <- if ("asymp.LCL" %in% names(emm)) "asymp.LCL" else "lower.CL"
+  ymax_col <- if ("asymp.UCL" %in% names(emm)) "asymp.UCL" else "upper.CL"
+
+  ggplot(emm, aes(x = treatment, y = emmean, group = 1)) +
+    geom_point(size = 1.5) +
+    geom_errorbar(aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]]),
+                  width = 0.05) +
+    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = 0.3) +
+    coord_cartesian(ylim = c(0.5, 4.5)) +
+    labs(title = title, y = "Marginal means", x = NULL) +
+    theme_main(main_text_size)
+}
+
+plot_contrasts_overall <- function(contr, title, main_text_size = 14) {
+  ggplot(contr, aes(x = contrast, y = estimate, group = 1)) +
+    geom_point(size = 1.5) +
+    geom_errorbar(aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
+                  width = 0.05) +
+    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3) +
+    ylim(-1.65, 1.5) +
+    labs(title = title, y = "Contrast with control", x = NULL) +
+    theme_main(main_text_size)
+}
+
+plot_overall <- (
+  plot_emmeans_overall(emm_wtp, "A. Effect of tax designs on willingness to pay") |
+  plot_contrasts_overall(contr_wtp, title = NULL)
+) / (
+  plot_emmeans_overall(emm_wtc, "B. Effect of budget designs on willingness to change") |
+  plot_contrasts_overall(contr_wtc, title = NULL)
+) +
+  plot_layout(axis_titles = "collect")
 
 
 ############## marginal means ################
@@ -470,8 +513,7 @@ plot_emmeans_subgroup <- function(
       linewidth = 0.3
     ) +
     coord_cartesian(ylim = c(0.5, 4.5)) +
-    theme_classic() +
-    theme(text = element_text(size = main_text_size))
+    theme_main(main_text_size)
 
   if (!is.null(color_scale)) {
     p <- p + color_scale
@@ -481,14 +523,14 @@ plot_emmeans_subgroup <- function(
 
 plot_wtp_income <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtp_income,
-  emm_overall = emm_wtp,
+  emm_overall = NULL,
   by = "income_group",
   legend_title = "Income group",
   color_scale = scale_income
 ) + labs(title = "A. Effect of tax designs on willingness to pay")
 plot_wtc_income <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_income,
-  emm_overall = emm_wtc,
+  emm_overall = NULL,
   by = "income_group",
   legend_title = "Income group",
   color_scale = scale_income
@@ -499,14 +541,14 @@ plot_wtc_income <- plot_emmeans_subgroup(
 
 plot_wtp_flier <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtp_flier,
-  emm_overall = emm_wtp,
+  emm_overall = NULL,
   by = "flying_group",
   legend_title = "Flying behaviour",
   color_scale = scale_flier
 ) + labs(title = "A. Effect of tax designs on willingness to pay")
 plot_wtc_flier <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_flier,
-  emm_overall = emm_wtc,
+  emm_overall = NULL,
   by = "flying_group",
   legend_title = "Flying behaviour",
   color_scale = scale_flier
@@ -515,14 +557,14 @@ plot_wtc_flier <- plot_emmeans_subgroup(
 
 plot_wtp_clim <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtp_clim,
-  emm_overall = emm_wtp,
+  emm_overall = NULL,
   by = "clim_concern",
   legend_title = "Climate concern",
   color_scale = scale_clim
 ) + labs(title = "A. Effect of tax designs on willingness to pay")
 plot_wtc_clim <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_clim,
-  emm_overall = emm_wtc,
+  emm_overall = NULL,
   by = "clim_concern",
   legend_title = "Climate concern",
   color_scale = scale_clim
@@ -573,15 +615,8 @@ plot_flights_subgroup <- function(
       linewidth = .3
     ) +
     ylim(1,4) +
-    theme_classic() +
-    theme(text = element_text(size = main_text_size))
+    theme_main(main_text_size)
 }
-
-plot_flights_income <- plot_flights_subgroup(
-  emm_flights_income,
-  by = income_group
-) +
-  labs(title = "C. Change in planned flights")
 
 
 
@@ -654,8 +689,7 @@ plot_contrasts_subgroup <- function(
       x = NULL
     ) +
     ylim(-1.65, 1.5) +
-    theme_classic() +
-    theme(text = element_text(size = main_text_size))
+    theme_main(main_text_size)
 
   if (!is.null(color_scale)) {
     p <- p + color_scale
@@ -667,7 +701,7 @@ plot_contrasts_subgroup <- function(
 
 plot_contr_wtp_income <- plot_contrasts_subgroup(
   contr_subgroup = contr_wtp_income,
-  contr_overall  = contr_wtp,
+  contr_overall  = NULL,
   by = "income_group",
   legend_title = "Income group",
   color_scale = scale_income
@@ -675,7 +709,7 @@ plot_contr_wtp_income <- plot_contrasts_subgroup(
 
 plot_contr_wtc_income <- plot_contrasts_subgroup(
   contr_subgroup = contr_wtc_income,
-  contr_overall  = contr_wtc,
+  contr_overall  = NULL,
   by = "income_group",
   legend_title = "Income group",
   color_scale = scale_income
@@ -683,7 +717,7 @@ plot_contr_wtc_income <- plot_contrasts_subgroup(
 
 plot_contr_wtp_flier <- plot_contrasts_subgroup(
   contr_subgroup = contr_wtp_flier,
-  contr_overall  = contr_wtp,
+  contr_overall  = NULL,
   by = "flying_group",
   legend_title = "Flying behaviour",
   color_scale = scale_flier
@@ -691,7 +725,7 @@ plot_contr_wtp_flier <- plot_contrasts_subgroup(
 
 plot_contr_wtc_flier <- plot_contrasts_subgroup(
   contr_subgroup = contr_wtc_flier,
-  contr_overall  = contr_wtc,
+  contr_overall  = NULL,
   by = "flying_group",
   legend_title = "Flying behaviour",
   color_scale = scale_flier
@@ -699,7 +733,7 @@ plot_contr_wtc_flier <- plot_contrasts_subgroup(
 
 plot_contr_wtp_clim <- plot_contrasts_subgroup(
   contr_subgroup = contr_wtp_clim,
-  contr_overall  = contr_wtp,
+  contr_overall  = NULL,
   by = "clim_concern",
   legend_title = "Climate concern",
   color_scale = scale_clim
@@ -707,7 +741,7 @@ plot_contr_wtp_clim <- plot_contrasts_subgroup(
 
 plot_contr_wtc_clim <- plot_contrasts_subgroup(
   contr_subgroup = contr_wtc_clim,
-  contr_overall  = contr_wtc,
+  contr_overall  = NULL,
   by = "clim_concern",
   legend_title = "Climate concern",
   color_scale = scale_clim
@@ -731,6 +765,21 @@ plot_clim_emm_contr <- (plot_wtp_clim | plot_contr_wtp_clim) /
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
 
+plot_income_contr_only <- (plot_contr_wtp_income + labs(title = "A. Effect of tax designs on willingness to pay")) /
+  (plot_contr_wtc_income + labs(title = "B. Effect of budget designs on willingness to change")) +
+  plot_layout(guides = "collect", axis_titles = "collect") &
+  theme(legend.position = "bottom")
+
+plot_flier_contr_only <- (plot_contr_wtp_flier + labs(title = "A. Effect of tax designs on willingness to pay")) /
+  (plot_contr_wtc_flier + labs(title = "B. Effect of budget designs on willingness to change")) +
+  plot_layout(guides = "collect", axis_titles = "collect") &
+  theme(legend.position = "bottom")
+
+plot_clim_contr_only <- (plot_contr_wtp_clim+ labs(title = "A. Effect of tax designs on willingness to pay")) /
+  (plot_contr_wtc_clim + labs(title = "B. Effect of budget designs on willingness to change")) +
+  plot_layout(guides = "collect", axis_titles = "collect") &
+  theme(legend.position = "bottom")
+
 
 ################### save stuff #####################
 
@@ -751,4 +800,28 @@ ggsave(
   plot = plot_clim_emm_contr,
   here("output", "plot_clim_emm_contr.png"),
   height = 10, width = 15
+)
+
+ggsave(
+  plot = plot_income_contr_only,
+  here("output", "plot_contr_income.png"),
+  height = 10, width = 15
+)
+
+ggsave(
+  plot = plot_flier_contr_only,
+  here("output", "plot_contr_flier.png"),
+  height = 10, width = 15
+)
+
+ggsave(
+  plot = plot_clim_contr_only,
+  here("output", "plot_contr_clim.png"),
+  height = 10, width = 15
+)
+
+ggsave(
+  plot = plot_overall,
+  here("output", "plot_overall_results.png"),
+  height = 8, width = 15
 )
