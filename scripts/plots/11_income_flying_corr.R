@@ -10,23 +10,28 @@ library(knitr)
 library(colorspace)
 library(patchwork)
 
+if (exists("snakemake")) {
+  controls_file <- snakemake@input[["controls"]]
+  corr_out      <- snakemake@output[["corr"]]
+  plot_out      <- snakemake@output[["plot"]]
+} else {
+  controls_file <- here("data", "wtc_wtp_controls_tidy.csv")
+  corr_out      <- here("data", "corr_income_flying.csv")
+  plot_out      <- here("output", "plot_income_flying.png")
+}
+
 main_text_size <- 14
 
-data_controls <- read_csv(
-  here("data", "wtc_wtp_controls_tidy.csv"), show_col_types = FALSE
-) |>
+data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
   filter(!is.na(wtc)) |>
   mutate(
     income_group = case_when(
       income_decile %in% 1:3 ~ "low",
       income_decile %in% 4:7 ~ "mid",
       income_decile %in% 8:10 ~ "high",
-      TRUE ~ NA_character_ 
+      TRUE ~ NA_character_
     ),
-    income_group = factor(
-      income_group,
-      levels = c("low", "mid", "high")
-    ),
+    income_group = factor(income_group, levels = c("low", "mid", "high")),
     flying_group = case_when(
       flying_recent == "no" | flying_ever == "no" ~ "non-flyer",
       flying_recent_number < 6 ~ "average flyer",
@@ -42,11 +47,8 @@ data_controls <- read_csv(
     income_decile = as.integer(income_decile)
   )
 
-
 ################# income and flying #####################
-# income and flying behaviour correlation
 
-# filter missing
 data_controls_num <- data_controls |>
   filter(!is.na(income_decile)) |>
   mutate(
@@ -64,9 +66,6 @@ corr_income_flying <- data_controls_num |>
   summarise(
     spearman_rho = cor(income_decile, flying_recent_number, method = "spearman")
   )
-
-country_income_table <- data_controls_num |>
-  count(country, income_decile)
 
 plot_income_flying <- ggplot(data_controls_num, aes(
   x = flying_recent_number,
@@ -88,10 +87,5 @@ plot_income_flying <- ggplot(data_controls_num, aes(
     strip.text = element_text(face = "bold")
   )
 
-write_csv(corr_income_flying, here("data", "corr_income_flying.csv"))
-
-ggsave(
-  plot = plot_income_flying,
-  here("output", "plot_income_flying.png"),
-  height = 10, width = 10
-)
+write_csv(corr_income_flying, corr_out)
+ggsave(plot = plot_income_flying, plot_out, height = 10, width = 10)

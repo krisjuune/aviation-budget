@@ -1,15 +1,105 @@
-RAW_US = "raw-data/Aviation_Justice_US_111224_1531.csv"
-RAW_CH = "raw-data/Aviation_Justice_CH_111224_1531.csv"
-RAW_CN = "raw-data/Aviation_Justice_CN_111224_1532.csv"
-CLEAN_US = "data/data_clean_us.csv"
-CLEAN_CH = "data/data_clean_ch.csv"
-CLEAN_CN = "data/data_clean_cn.csv"
+# data
+RAW_US              = "raw-data/Aviation_Justice_US_111224_1531.csv"
+RAW_CH              = "raw-data/Aviation_Justice_CH_111224_1531.csv"
+RAW_CN              = "raw-data/Aviation_Justice_CN_111224_1532.csv"
+CLEAN_US            = "data/data_clean_us.csv"
+CLEAN_CH            = "data/data_clean_ch.csv"
+CLEAN_CN            = "data/data_clean_cn.csv"
 WTC_WTP_DATA        = "data/wtc_wtp_tidy.csv"
 WTC_WTP_FAIR_DATA   = "data/wtc_wtp_fair_tidy.csv"
 WTC_WTP_CTRL_DATA   = "data/wtc_wtp_controls_tidy.csv"
 
-SAMPLE_SUMMARY = "output/sample_summary.txt"
+# data outputs
+EMM_WTC               = "data/emm_wtc.csv"
+EMM_WTP               = "data/emm_wtp.csv"
+EMM_WTC_REDAMT        = "data/emm_wtc_redamt.csv"
+EMM_WTP_REDAMT        = "data/emm_wtp_redamt.csv"
+EMM_WTP_HAUL          = "data/emm_wtp_haul.csv"
+CONTR_WTC             = "data/contr_wtc.csv"
+CONTR_WTP             = "data/contr_wtp.csv"
+EMM_WTC_INCOME        = "data/emm_wtc_income.csv"
+EMM_WTP_INCOME        = "data/emm_wtp_income.csv"
+CONTR_WTC_INCOME      = "data/contr_wtc_income.csv"
+CONTR_WTP_INCOME      = "data/contr_wtp_income.csv"
+CONTR_FLIGHTS_INCOME  = "data/contr_flights_income.csv"
+EMM_WTC_FLIER         = "data/emm_wtc_flier.csv"
+EMM_WTP_FLIER         = "data/emm_wtp_flier.csv"
+CONTR_WTC_FLIER       = "data/contr_wtc_flier.csv"
+CONTR_WTP_FLIER       = "data/contr_wtp_flier.csv"
+CONTR_FLIGHTS_FLIER   = "data/contr_flights_flier.csv"
+EMM_WTC_CLIM          = "data/emm_wtc_clim.csv"
+EMM_WTP_CLIM          = "data/emm_wtp_clim.csv"
+CONTR_WTC_CLIM        = "data/contr_wtc_clim.csv"
+CONTR_WTP_CLIM        = "data/contr_wtp_clim.csv"
+CONTR_FLIGHTS_CLIM    = "data/contr_flights_clim.csv"
+CORR_INCOME_FLYING    = "data/corr_income_flying.csv"
 
+# output plots and txt files
+SAMPLE_SUMMARY        = "output/sample_summary.txt"
+ASSUMPTIONS_WTC       = "output/assumptions_wtc.png"
+ASSUMPTIONS_WTP       = "output/assumptions_wtp.png"
+COVARIATES_PLOT       = "output/plot_covariates.png"
+OVERALL_PLOT          = "output/plot_overall_results.png"
+PLOT_INCOME_FLYING    = "output/plot_income_flying.png"
+FAIRNESS_PLOT         = "output/fairness_scores.png"
+FAIRNESS_REPORT       = "output/fairness_means.txt"
+PLOT_INCOME_EMM_CONTR = "output/plot_income_emm_contr.png"
+PLOT_FLIER_EMM_CONTR  = "output/plot_flier_emm_contr.png"
+PLOT_CLIM_EMM_CONTR   = "output/plot_clim_emm_contr.png"
+PLOT_CONTR_INCOME     = "output/plot_contr_income.png"
+PLOT_CONTR_FLIER      = "output/plot_contr_flier.png"
+PLOT_CONTR_CLIM       = "output/plot_contr_clim.png"
+
+
+rule all:
+    input:
+        CLEAN_US,
+        CLEAN_CH,
+        CLEAN_CN,
+        WTC_WTP_DATA,
+        WTC_WTP_FAIR_DATA,
+        WTC_WTP_CTRL_DATA,
+        SAMPLE_SUMMARY,
+        EMM_WTC,
+        EMM_WTP,
+        EMM_WTC_REDAMT,
+        EMM_WTP_REDAMT,
+        EMM_WTP_HAUL,
+        CONTR_WTC,
+        CONTR_WTP,
+        ASSUMPTIONS_WTC,
+        ASSUMPTIONS_WTP,
+        COVARIATES_PLOT,
+        EMM_WTC_INCOME,
+        EMM_WTP_INCOME,
+        CONTR_WTC_INCOME,
+        CONTR_WTP_INCOME,
+        CONTR_FLIGHTS_INCOME,
+        EMM_WTC_FLIER,
+        EMM_WTP_FLIER,
+        CONTR_WTC_FLIER,
+        CONTR_WTP_FLIER,
+        CONTR_FLIGHTS_FLIER,
+        EMM_WTC_CLIM,
+        EMM_WTP_CLIM,
+        CONTR_WTC_CLIM,
+        CONTR_WTP_CLIM,
+        CONTR_FLIGHTS_CLIM,
+        OVERALL_PLOT,
+        CORR_INCOME_FLYING,
+        PLOT_INCOME_FLYING,
+        FAIRNESS_PLOT,
+        FAIRNESS_REPORT,
+        PLOT_INCOME_EMM_CONTR,
+        PLOT_FLIER_EMM_CONTR,
+        PLOT_CLIM_EMM_CONTR,
+        PLOT_CONTR_INCOME,
+        PLOT_CONTR_FLIER,
+        PLOT_CONTR_CLIM
+
+# ----------------------------
+# Preprocess data
+# ----------------------------
 rule preprocess_basics:
     input:
         us = RAW_US,
@@ -33,7 +123,10 @@ rule preprocess_lmm:
         wtc_wtp_controls = WTC_WTP_CTRL_DATA
     script:
         "scripts/preprocessing/01_preprocessing_lmm.R"
-    
+
+# ----------------------------
+# Sample description
+# ----------------------------
 rule sample_description:
     input:
         us       = CLEAN_US,
@@ -44,3 +137,119 @@ rule sample_description:
         summary = SAMPLE_SUMMARY
     script:
         "scripts/analysis/02_sample_description.R"
+
+# ----------------------------
+# LMM analysis
+# ----------------------------
+rule lmm_simple_models:
+    input:
+        wtc_wtp      = WTC_WTP_DATA,
+        wtc_wtp_fair = WTC_WTP_FAIR_DATA
+    output:
+        emm_wtc         = EMM_WTC,
+        emm_wtp         = EMM_WTP,
+        emm_wtc_redamt  = EMM_WTC_REDAMT,
+        emm_wtp_redamt  = EMM_WTP_REDAMT,
+        emm_wtp_haul    = EMM_WTP_HAUL,
+        contr_wtc       = CONTR_WTC,
+        contr_wtp       = CONTR_WTP,
+        assumptions_wtc = ASSUMPTIONS_WTC,
+        assumptions_wtp = ASSUMPTIONS_WTP
+    script:
+        "scripts/analysis/04_lmm_simple_models.R"
+
+rule lmm_covariates:
+    input:
+        controls = WTC_WTP_CTRL_DATA,
+        fair     = WTC_WTP_FAIR_DATA
+    output:
+        covariates_plot = COVARIATES_PLOT
+    script:
+        "scripts/analysis/05_lmm_covariates.R"
+
+rule lmm_subgroups:
+    input:
+        controls = WTC_WTP_CTRL_DATA,
+        fair     = WTC_WTP_FAIR_DATA
+    output:
+        emm_wtc_income       = EMM_WTC_INCOME,
+        emm_wtp_income       = EMM_WTP_INCOME,
+        contr_wtc_income     = CONTR_WTC_INCOME,
+        contr_wtp_income     = CONTR_WTP_INCOME,
+        contr_flights_income = CONTR_FLIGHTS_INCOME,
+        emm_wtc_flier        = EMM_WTC_FLIER,
+        emm_wtp_flier        = EMM_WTP_FLIER,
+        contr_wtc_flier      = CONTR_WTC_FLIER,
+        contr_wtp_flier      = CONTR_WTP_FLIER,
+        contr_flights_flier  = CONTR_FLIGHTS_FLIER,
+        emm_wtc_clim         = EMM_WTC_CLIM,
+        emm_wtp_clim         = EMM_WTP_CLIM,
+        contr_wtc_clim       = CONTR_WTC_CLIM,
+        contr_wtp_clim       = CONTR_WTP_CLIM,
+        contr_flights_clim   = CONTR_FLIGHTS_CLIM
+    script:
+        "scripts/analysis/06_lmm_subgroups.R"
+
+# ----------------------------
+# Plotting
+# ----------------------------
+
+rule plot_overall_emm:
+    input:
+        emm_wtc   = EMM_WTC,
+        emm_wtp   = EMM_WTP,
+        contr_wtc = CONTR_WTC,
+        contr_wtp = CONTR_WTP
+    output:
+        overall_plot = OVERALL_PLOT
+    script:
+        "scripts/plots/10_overall_emm.R"
+
+rule plot_income_flying_corr:
+    input:
+        controls = WTC_WTP_CTRL_DATA
+    output:
+        corr = CORR_INCOME_FLYING,
+        plot = PLOT_INCOME_FLYING
+    script:
+        "scripts/plots/11_income_flying_corr.R"
+
+rule plot_fairness_scores:
+    input:
+        fair = WTC_WTP_FAIR_DATA
+    output:
+        fairness_plot   = FAIRNESS_PLOT,
+        fairness_report = FAIRNESS_REPORT
+    script:
+        "scripts/plots/12_fairness_scores.R"
+
+rule plot_subgroup_emm:
+    input:
+        emm_wtc               = EMM_WTC,
+        emm_wtp               = EMM_WTP,
+        contr_wtc             = CONTR_WTC,
+        contr_wtp             = CONTR_WTP,
+        emm_wtc_income        = EMM_WTC_INCOME,
+        emm_wtp_income        = EMM_WTP_INCOME,
+        contr_wtc_income      = CONTR_WTC_INCOME,
+        contr_wtp_income      = CONTR_WTP_INCOME,
+        contr_flights_income  = CONTR_FLIGHTS_INCOME,
+        emm_wtc_flier         = EMM_WTC_FLIER,
+        emm_wtp_flier         = EMM_WTP_FLIER,
+        contr_wtc_flier       = CONTR_WTC_FLIER,
+        contr_wtp_flier       = CONTR_WTP_FLIER,
+        contr_flights_flier   = CONTR_FLIGHTS_FLIER,
+        emm_wtc_clim          = EMM_WTC_CLIM,
+        emm_wtp_clim          = EMM_WTP_CLIM,
+        contr_wtc_clim        = CONTR_WTC_CLIM,
+        contr_wtp_clim        = CONTR_WTP_CLIM,
+        contr_flights_clim    = CONTR_FLIGHTS_CLIM
+    output:
+        income_emm_contr = PLOT_INCOME_EMM_CONTR,
+        flier_emm_contr  = PLOT_FLIER_EMM_CONTR,
+        clim_emm_contr   = PLOT_CLIM_EMM_CONTR,
+        contr_income     = PLOT_CONTR_INCOME,
+        contr_flier      = PLOT_CONTR_FLIER,
+        contr_clim       = PLOT_CONTR_CLIM
+    script:
+        "scripts/plots/13_subgroup_emm.R"

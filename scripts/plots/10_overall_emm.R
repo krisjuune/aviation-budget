@@ -12,21 +12,21 @@ library(colorspace)
 library(patchwork)
 library(emmeans)
 
+if (exists("snakemake")) {
+  emm_wtc_file  <- snakemake@input[["emm_wtc"]]
+  emm_wtp_file  <- snakemake@input[["emm_wtp"]]
+  contr_wtc_file <- snakemake@input[["contr_wtc"]]
+  contr_wtp_file <- snakemake@input[["contr_wtp"]]
+  plot_out      <- snakemake@output[["overall_plot"]]
+} else {
+  emm_wtc_file   <- here("data", "emm_wtc.csv")
+  emm_wtp_file   <- here("data", "emm_wtp.csv")
+  contr_wtc_file <- here("data", "contr_wtc.csv")
+  contr_wtp_file <- here("data", "contr_wtp.csv")
+  plot_out       <- here("output", "plot_overall_results.png")
+}
 
 standardize_emm_columns <- function(emm_df) {
-  emm_df <- emm_df |>
-    rename(
-      asymp.LCL = case_when(
-        "asymp.LCL" %in% colnames(emm_df) ~ "asymp.LCL",
-        "lower.CL" %in% colnames(emm_df) ~ "lower.CL",
-        TRUE ~ NA_character_
-      ),
-      asymp.UCL = case_when(
-        "asymp.UCL" %in% colnames(emm_df) ~ "asymp.UCL",
-        "upper.CL" %in% colnames(emm_df) ~ "upper.CL",
-        TRUE ~ NA_character_
-      )
-    )
   if ("lower.CL" %in% colnames(emm_df)) {
     emm_df <- rename(emm_df, asymp.LCL = lower.CL)
   }
@@ -44,59 +44,51 @@ theme_main <- function(main_text_size = 14) {
     )
 }
 
-emm_wtc <- read_csv(
-  here("data", "emm_wtc.csv"), show_col_types = FALSE
-) |>
+emm_wtc <- read_csv(emm_wtc_file, show_col_types = FALSE) |>
   standardize_emm_columns() |>
   mutate(
     treatment = factor(treatment) |>
       fct_recode(
-        "Equal budget" = "Egalitarianism",
-        "Frequent-flying cap" = "Limitarianism",
-        "Tourism cap" = "Prioritarianism",
+        "Equal budget"           = "Egalitarianism",
+        "Frequent-flying cap"    = "Limitarianism",
+        "Tourism cap"            = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
   )
 
-emm_wtp <- read_csv(
-  here("data", "emm_wtp.csv"), show_col_types = FALSE
-) |>
+emm_wtp <- read_csv(emm_wtp_file, show_col_types = FALSE) |>
   standardize_emm_columns() |>
   mutate(
     treatment = factor(treatment) |>
       fct_recode(
-        "Income-based fee" = "Egalitarianism",
+        "Income-based fee"   = "Egalitarianism",
         "Frequent-flying fee" = "Limitarianism",
-        "Tourism fee" = "Prioritarianism",
-        "Flying fee" = "Proportionalism"
+        "Tourism fee"        = "Prioritarianism",
+        "Flying fee"         = "Proportionalism"
       )
   )
 
-contr_wtc <- read_csv(
-  here("data", "contr_wtc.csv"), show_col_types = FALSE
-) |>
+contr_wtc <- read_csv(contr_wtc_file, show_col_types = FALSE) |>
   mutate(
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
       fct_recode(
-        "Equal budget" = "Egalitarianism",
-        "Frequent-flying cap" = "Limitarianism",
-        "Tourism cap" = "Prioritarianism",
+        "Equal budget"           = "Egalitarianism",
+        "Frequent-flying cap"    = "Limitarianism",
+        "Tourism cap"            = "Prioritarianism",
         "Proportional reduction" = "Proportionalism"
       )
   )
 
-contr_wtp <- read_csv(
-  here("data", "contr_wtp.csv"), show_col_types = FALSE
-) |>
+contr_wtp <- read_csv(contr_wtp_file, show_col_types = FALSE) |>
   mutate(
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
       fct_recode(
-        "Income-based fee" = "Egalitarianism",
+        "Income-based fee"    = "Egalitarianism",
         "Frequent-flying fee" = "Limitarianism",
-        "Tourism fee" = "Prioritarianism",
-        "Flying fee" = "Proportionalism"
+        "Tourism fee"         = "Prioritarianism",
+        "Flying fee"          = "Proportionalism"
       )
   )
 
@@ -105,7 +97,6 @@ contr_wtp <- read_csv(
 plot_emmeans_overall <- function(emm, title, main_text_size = 14) {
   ymin_col <- if ("asymp.LCL" %in% names(emm)) "asymp.LCL" else "lower.CL"
   ymax_col <- if ("asymp.UCL" %in% names(emm)) "asymp.UCL" else "upper.CL"
-
   ggplot(emm, aes(x = treatment, y = emmean, group = 1)) +
     geom_point(size = 1.5) +
     geom_errorbar(aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]]),
@@ -136,10 +127,4 @@ plot_overall <- (
 ) +
   plot_layout(axis_titles = "collect")
 
-################### save stuff #####################
-
-ggsave(
-  plot = plot_overall,
-  here("output", "plot_overall_results.png"),
-  height = 8, width = 15
-)
+ggsave(plot = plot_overall, plot_out, height = 8, width = 15)

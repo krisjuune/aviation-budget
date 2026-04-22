@@ -13,25 +13,29 @@ library(here)
 library(knitr)
 library(colorspace)
 library(patchwork)
-source(here("scripts", "lmm_simple_models.R"))
+
+if (exists("snakemake")) {
+  controls_file <- snakemake@input[["controls"]]
+  fair_file     <- snakemake@input[["fair"]]
+  plot_out      <- snakemake@output[["covariates_plot"]]
+} else {
+  controls_file <- here("data", "wtc_wtp_controls_tidy.csv")
+  fair_file     <- here("data", "wtc_wtp_fair_tidy.csv")
+  plot_out      <- here("output", "plot_covariates.png")
+}
 
 main_text_size <- 14
 
-data_controls <- read_csv(
-  here("data", "wtc_wtp_controls_tidy.csv"), show_col_types = FALSE
-) |>
+data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
   filter(!is.na(wtc)) |>
   mutate(
     income_group = case_when(
       income_decile %in% 1:3 ~ "low",
       income_decile %in% 4:7 ~ "mid",
       income_decile %in% 8:10 ~ "high",
-      TRUE ~ NA_character_ 
+      TRUE ~ NA_character_
     ),
-    income_group = factor(
-      income_group,
-      levels = c("low", "mid", "high")
-    ),
+    income_group = factor(income_group, levels = c("low", "mid", "high")),
     flying_group = case_when(
       flying_recent == "no" ~ "non-flyer",
       flying_recent_number <= 6 ~ "average flyer",
@@ -47,19 +51,10 @@ data_controls <- read_csv(
     income_decile = as.integer(income_decile)
   )
 
-data_fair <- read_csv(
-  here("data", "wtc_wtp_fair_tidy.csv"),
-  show_col_types = FALSE
-)
+data_fair <- read_csv(fair_file, show_col_types = FALSE)
 
 fair_vars <- data_fair |>
-  select(
-    id,
-    fair_group_wtp,
-    fair_self_wtp,
-    fair_group_wtc,
-    fair_self_wtc
-  ) |>
+  select(id, fair_group_wtp, fair_self_wtp, fair_group_wtc, fair_self_wtc) |>
   distinct()
 
 data_controls <- data_controls |>
@@ -87,9 +82,6 @@ model_wtp <- lmer(
     (1 | country),
   data = data_controls
 )
-
-summary(model_wtc)
-summary(model_wtp, correlation = TRUE)
 
 covariates_wtp <- c(
   "fair_self_wtp",
@@ -131,31 +123,21 @@ plot_covariate_effects <- function(
   main_text_size = 14,
   title = NULL
 ) {
-
-    plots <- lapply(seq_along(covariates), function(i) {
-
+  plots <- lapply(seq_along(covariates), function(i) {
     var <- covariates[i]
-
-    preds <- ggpredict(model, terms = var) |>
-      as.data.frame()
-
+    preds <- ggpredict(model, terms = var) |> as.data.frame()
     x_lab <- if (!is.null(x_labels) && var %in% names(x_labels)) {
       x_labels[[var]]
     } else {
       var
     }
-
     y_lab <- if (i == 1) response_label else NULL
-
     p <- ggplot(preds, aes(x = x, y = predicted)) +
       geom_line(colour = "#3B4CC0") +
       geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "#AAB0FF") +
       geom_hline(yintercept = 2.5, linetype = "dashed") +
       theme_classic() +
-      labs(
-        x = x_lab,
-        y = y_lab
-      ) +
+      labs(x = x_lab, y = y_lab) +
       scale_x_continuous(
         breaks = function(x) {
           brks <- pretty(x, n = 5)
@@ -164,7 +146,6 @@ plot_covariate_effects <- function(
       ) +
       ylim(.25, 4.5) +
       theme(text = element_text(size = main_text_size))
-
     if (i != 1) {
       p <- p + theme(
         axis.title.y = element_blank(),
@@ -172,122 +153,10 @@ plot_covariate_effects <- function(
         axis.ticks.y = element_blank()
       )
     }
-
     return(p)
   })
-  combined_plot <- wrap_plots(plots, nrow = 1) +
-    plot_annotation(title = title)
-
-  return(combined_plot)
+  wrap_plots(plots, nrow = 1) + plot_annotation(title = title)
 }
-
-
-
-
-
-plot_covariate_effects_bubbles <- function(
-  model,
-  covariates,
-  raw_data = NULL,
-  response_var = "wtc",
-  x_labels = NULL,
-  response_label = "Predicted response",
-  main_text_size = 14,
-  title = NULL
-) {
-
-  plots <- lapply(seq_along(covariates), function(i) {
-
-    var <- covariates[i]
-
-    preds <- ggpredict(model, terms = var) |>
-      as.data.frame()
-
-    x_lab <- if (!is.null(x_labels) && var %in% names(x_labels)) {
-      x_labels[[var]]
-    } else {
-      var
-    }
-
-    y_lab <- if (i == 1) response_label else NULL
-
-    p <- ggplot(preds, aes(x = x, y = predicted)) +
-      geom_line() +
-      geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
-      geom_hline(yintercept = 2.5, linetype = "dashed") +
-      theme_classic() +
-      labs(
-        x = x_lab,
-        y = y_lab
-      ) +
-      scale_x_continuous(
-        breaks = function(x) {
-          brks <- pretty(x, n = 5)
-          brks[brks %% 1 == 0]
-        }
-      ) +
-      ylim(0.25, 4.5) +
-      theme(text = element_text(size = main_text_size))
-
-
-    # Determine if the covariate is discrete
-    if (is.integer(raw_data[[var]]) || is.factor(raw_data[[var]]) || length(unique(raw_data[[var]])) <= 6) {
-
-      # Bubble plot for discrete covariates
-      df_bubbles <- raw_data %>%
-        count(x = .data[[var]], y = wtc) # change wtc to wtp if plotting WTP
-
-      p <- p + 
-        geom_point(
-          data = df_bubbles,
-          aes(x = x, y = y, size = n),
-          color = "grey40",
-          alpha = 0.3
-        ) +
-        scale_size_area(max_size = 5)
-
-    } else {
-
-      # Optional: add quasirandom jitter for continuous covariates
-      p <- p + geom_jitter(data = raw_data, aes_string(x = var, y = "wtc"),
-                           width = 0.2, height = 0, alpha = 0.1, color = "grey50")
-    }
-
-    if (i != 1) {
-      p <- p + theme(
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank()
-      )
-    }
-
-    return(p)
-  })
-
-  combined_plot <- wrap_plots(plots, nrow = 1) +
-    plot_annotation(title = title)
-
-  return(combined_plot)
-}
-
-# plot_wtc_covariates <- plot_covariate_effects(
-#   model_wtc,
-#   covariates_wtc,
-#   raw_data = data_controls,
-#   outcome = "wtc",
-#   x_labels = covariate_labels_wtc,
-#   response_label = "Predicted score",
-#   title = "B. Predicted willingness to change"
-# )
-
-
-plot_wtc_covariates <- plot_covariate_effects(
-  model_wtc,
-  covariates_wtc,
-  x_labels = covariate_labels_wtc,
-  response_label = "Predicted WTC",
-  title = "B. Predicted willingness to change"
-)
 
 plot_wtp_covariates <- plot_covariate_effects(
   model_wtp,
@@ -295,6 +164,14 @@ plot_wtp_covariates <- plot_covariate_effects(
   x_labels = covariate_labels_wtp,
   response_label = "Predicted WTP",
   title = "A. Predicted willingness to pay"
+)
+
+plot_wtc_covariates <- plot_covariate_effects(
+  model_wtc,
+  covariates_wtc,
+  x_labels = covariate_labels_wtc,
+  response_label = "Predicted WTC",
+  title = "B. Predicted willingness to change"
 )
 
 title_wtp <- wrap_elements(
@@ -320,11 +197,4 @@ plot_covariates <-
   plot_wtc_covariates +
   plot_layout(heights = c(0.1, 1, 0.1, 1))
 
-
-################### save stuff ######################
-
-ggsave(
-  plot = plot_covariates,
-  here("output", "plot_covariates.png"),
-  height = 7, width = 14
-)
+ggsave(plot = plot_covariates, plot_out, height = 7, width = 14)
