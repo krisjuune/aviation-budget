@@ -30,6 +30,9 @@ dependencies:
   - r-ggtext
   - r-viridis
   - r-readr
+  - r-see
+  - r-ggeffects
+  - r-ggridges
   - pip
   - pip:
     - snakemake
