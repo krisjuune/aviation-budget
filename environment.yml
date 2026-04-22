@@ -33,6 +33,8 @@ dependencies:
   - r-see
   - r-ggeffects
   - r-ggridges
+  - r-rmarkdown
+  - r-knitr
   - pip
   - pip:
     - snakemake
