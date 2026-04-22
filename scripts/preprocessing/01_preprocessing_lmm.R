@@ -6,29 +6,25 @@ library(purrr)
 library(janitor)
 library(tibble)
 
-df_us <- read_csv(
-  here("data", "data_clean_us.csv"),
-  show_col_types = FALSE
-) |>
-  mutate(
-    country = "us"
-  )
+if (exists("snakemake")) {
+  clean_us   <- snakemake@input[["us"]]
+  clean_ch   <- snakemake@input[["ch"]]
+  clean_cn   <- snakemake@input[["cn"]]
+  out_tidy        <- snakemake@output[["wtc_wtp"]]
+  out_fair        <- snakemake@output[["wtc_wtp_fair"]]
+  out_controls    <- snakemake@output[["wtc_wtp_controls"]]
+} else {
+  clean_us   <- here("data", "data_clean_us.csv")
+  clean_ch   <- here("data", "data_clean_ch.csv")
+  clean_cn   <- here("data", "data_clean_cn.csv")
+  out_tidy        <- here("data", "wtc_wtp_tidy.csv")
+  out_fair        <- here("data", "wtc_wtp_fair_tidy.csv")
+  out_controls    <- here("data", "wtc_wtp_controls_tidy.csv")
+}
 
-df_ch <- read_csv(
-  here("data", "data_clean_ch.csv"),
-  show_col_types = FALSE
-) |>
-  mutate(
-    country = "ch"
-  )
-
-df_cn <- read_csv(
-  here("data", "data_clean_cn.csv"),
-  show_col_types = FALSE
-) |>
-  mutate(
-    country = "cn"
-  )
+df_us <- read_csv(clean_us, show_col_types = FALSE) |> mutate(country = "us")
+df_ch <- read_csv(clean_ch, show_col_types = FALSE) |> mutate(country = "ch")
+df_cn <- read_csv(clean_cn, show_col_types = FALSE) |> mutate(country = "cn")
 
 ###################### remove outliers ####################
 
@@ -89,18 +85,6 @@ df_tidy <- df |>
     route_length, add_cost
   )
 
-df_tidy |>
-  group_by(treatment) |>
-  count()
-
-df_tidy |>
-  group_by(red_amt) |>
-  count()
-
-df_tidy |>
-  group_by(country) |>
-  count()
-
 df_tidy <- df_tidy |>
   mutate(
     add_cost = if_else(treatment == "control", 0, add_cost)
@@ -137,18 +121,15 @@ df_tidy <- df_tidy |>
   ) |>
   filter(!is.na(treatment) & !is.na(red_amt))
 
-write_csv(df_tidy, here("data", "wtc_wtp_tidy.csv"))
-
-
+write_csv(df_tidy, out_tidy)
 
 ###################### fairness #########################
+
 fair_self_group_regex <- "(?=.*fair)(?=.*(self|group))"
 df_fair <- map_dfr(
   list(df_us, df_ch, df_cn),
   ~ select(.x, all_of(var_list), matches(fair_self_group_regex, perl = TRUE))
 )
-
-colnames(df_fair)
 
 df_fair <- df_fair |>
   mutate(
@@ -193,18 +174,16 @@ df_fair <- df_fair |>
     fair_group_wtc, fair_self_wtc,
     fair_group_wtp, fair_self_wtp
   ) |>
-  mutate(fair_group_wtc = str_to_lower(fair_group_wtc),
-         fair_group_wtc = str_replace_all(fair_group_wtc, " ", "_"),
-         fair_self_wtc = str_to_lower(fair_self_wtc),
-         fair_self_wtc = str_replace_all(fair_self_wtc, " ", "_"),
-         fair_group_wtp = str_to_lower(fair_group_wtp),
-         fair_group_wtp = str_replace_all(fair_group_wtp, " ", "_"),
-         fair_self_wtp = str_to_lower(fair_self_wtp),
-         fair_self_wtp = str_replace_all(fair_self_wtp, " ", "_"))
-
-df_fair |>
-  group_by(fair_group_wtc) |>
-  count()
+  mutate(
+    fair_group_wtc = str_to_lower(fair_group_wtc),
+    fair_group_wtc = str_replace_all(fair_group_wtc, " ", "_"),
+    fair_self_wtc  = str_to_lower(fair_self_wtc),
+    fair_self_wtc  = str_replace_all(fair_self_wtc, " ", "_"),
+    fair_group_wtp = str_to_lower(fair_group_wtp),
+    fair_group_wtp = str_replace_all(fair_group_wtp, " ", "_"),
+    fair_self_wtp  = str_to_lower(fair_self_wtp),
+    fair_self_wtp  = str_replace_all(fair_self_wtp, " ", "_")
+  )
 
 df_fair <- df_fair |>
   pivot_longer(
@@ -237,10 +216,7 @@ df_fair <- df_fair |>
   ) |>
   filter(!is.na(treatment) & !is.na(red_amt))
 
-write_csv(df_fair, here("data", "wtc_wtp_fair_tidy.csv"))
-
-
-
+write_csv(df_fair, out_fair)
 
 ##################### covariates ########################
 
@@ -287,7 +263,6 @@ df_demo <- df_demo |>
       country == "us" & personal_income == "35k_45k" ~ 4,
       country == "ch" & personal_income == "45k_55k" ~ 4,
       country == "us" & personal_income == "45k_55k" ~ 5,
-
       personal_income %in% c("below_15k", "25k_below", "10k_below") ~ 1,
       personal_income %in% c("15k_25k", "10k_20k") ~ 2,
       personal_income %in% c("20k_30k") ~ 3,
@@ -303,10 +278,7 @@ df_demo <- df_demo |>
     )
   )
 
-df_demo |>
-  tabyl(income_decile, country)
-
 df_demo_tidy <- df_tidy |>
   left_join(df_demo, by = c("id", "country"))
 
-write_csv(df_demo_tidy, here("data", "wtc_wtp_controls_tidy.csv"))
+write_csv(df_demo_tidy, out_controls)

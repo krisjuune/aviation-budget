@@ -59,10 +59,10 @@ emm_wtp_income <- read_csv(
     ),
     treatment = factor(treatment) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -97,10 +97,10 @@ emm_wtp_flier <- read_csv(
     ),
     treatment = factor(treatment) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -135,10 +135,10 @@ emm_wtp_clim <- read_csv(
     ),
     treatment = factor(treatment) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -182,10 +182,10 @@ emm_wtp <- read_csv(
   mutate(
     treatment = factor(treatment) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -204,10 +204,10 @@ contr_wtp_income <- read_csv(
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -242,10 +242,10 @@ contr_wtp_flier <- read_csv(
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -280,10 +280,10 @@ contr_wtp_clim <- read_csv(
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -349,10 +349,10 @@ contr_wtp <- read_csv(
     contrast = stringr::str_remove(contrast, " - Control$"),
     contrast = factor(contrast) |>
       fct_recode(
-        "Income-based tax" = "Egalitarianism",
-        "Frequent-flying tax" = "Limitarianism",
-        "Tourism tax" = "Prioritarianism",
-        "Flying tax" = "Proportionalism"
+        "Income-based fee" = "Egalitarianism",
+        "Frequent-flying fee" = "Limitarianism",
+        "Tourism fee" = "Prioritarianism",
+        "Flying fee" = "Proportionalism"
       )
   )
 
@@ -402,43 +402,6 @@ scale_clim <- make_subgroup_scale(
   subgroups = subgroups_clim,
   legend_title = "Climate concern"
 )
-
-
-############# overall plots #################
-
-plot_emmeans_overall <- function(emm, title, main_text_size = 14) {
-  ymin_col <- if ("asymp.LCL" %in% names(emm)) "asymp.LCL" else "lower.CL"
-  ymax_col <- if ("asymp.UCL" %in% names(emm)) "asymp.UCL" else "upper.CL"
-
-  ggplot(emm, aes(x = treatment, y = emmean, group = 1)) +
-    geom_point(size = 1.5) +
-    geom_errorbar(aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]]),
-                  width = 0.05) +
-    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = 0.3) +
-    coord_cartesian(ylim = c(0.5, 4.5)) +
-    labs(title = title, y = "Marginal means", x = NULL) +
-    theme_main(main_text_size)
-}
-
-plot_contrasts_overall <- function(contr, title, main_text_size = 14) {
-  ggplot(contr, aes(x = contrast, y = estimate, group = 1)) +
-    geom_point(size = 1.5) +
-    geom_errorbar(aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-                  width = 0.05) +
-    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3) +
-    ylim(-1.65, 1.5) +
-    labs(title = title, y = "Contrast with control", x = NULL) +
-    theme_main(main_text_size)
-}
-
-plot_overall <- (
-  plot_emmeans_overall(emm_wtp, "A. Effect of tax designs on willingness to pay") |
-  plot_contrasts_overall(contr_wtp, title = NULL)
-) / (
-  plot_emmeans_overall(emm_wtc, "B. Effect of budget designs on willingness to change") |
-  plot_contrasts_overall(contr_wtc, title = NULL)
-) +
-  plot_layout(axis_titles = "collect")
 
 
 ############## marginal means ################
@@ -527,7 +490,7 @@ plot_wtp_income <- plot_emmeans_subgroup(
   by = "income_group",
   legend_title = "Income group",
   color_scale = scale_income
-) + labs(title = "A. Effect of tax designs on willingness to pay")
+) + labs(title = "A. Effect of surcharge designs on willingness to pay")
 plot_wtc_income <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_income,
   emm_overall = NULL,
@@ -545,7 +508,7 @@ plot_wtp_flier <- plot_emmeans_subgroup(
   by = "flying_group",
   legend_title = "Flying behaviour",
   color_scale = scale_flier
-) + labs(title = "A. Effect of tax designs on willingness to pay")
+) + labs(title = "A. Effect of surcharge designs on willingness to pay")
 plot_wtc_flier <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_flier,
   emm_overall = NULL,
@@ -561,7 +524,7 @@ plot_wtp_clim <- plot_emmeans_subgroup(
   by = "clim_concern",
   legend_title = "Climate concern",
   color_scale = scale_clim
-) + labs(title = "A. Effect of tax designs on willingness to pay")
+) + labs(title = "A. Effect of surcharge designs on willingness to pay")
 plot_wtc_clim <- plot_emmeans_subgroup(
   emm_subgroup = emm_wtc_clim,
   emm_overall = NULL,
@@ -765,17 +728,17 @@ plot_clim_emm_contr <- (plot_wtp_clim | plot_contr_wtp_clim) /
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
 
-plot_income_contr_only <- (plot_contr_wtp_income + labs(title = "A. Effect of tax designs on willingness to pay")) /
+plot_income_contr_only <- (plot_contr_wtp_income + labs(title = "A. Effect of surcharge designs on willingness to pay")) /
   (plot_contr_wtc_income + labs(title = "B. Effect of budget designs on willingness to change")) +
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
 
-plot_flier_contr_only <- (plot_contr_wtp_flier + labs(title = "A. Effect of tax designs on willingness to pay")) /
+plot_flier_contr_only <- (plot_contr_wtp_flier + labs(title = "A. Effect of surcharge designs on willingness to pay")) /
   (plot_contr_wtc_flier + labs(title = "B. Effect of budget designs on willingness to change")) +
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
 
-plot_clim_contr_only <- (plot_contr_wtp_clim+ labs(title = "A. Effect of tax designs on willingness to pay")) /
+plot_clim_contr_only <- (plot_contr_wtp_clim+ labs(title = "A. Effect of surcharge designs on willingness to pay")) /
   (plot_contr_wtc_clim + labs(title = "B. Effect of budget designs on willingness to change")) +
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
@@ -818,10 +781,4 @@ ggsave(
   plot = plot_clim_contr_only,
   here("output", "plot_contr_clim.png"),
   height = 10, width = 15
-)
-
-ggsave(
-  plot = plot_overall,
-  here("output", "plot_overall_results.png"),
-  height = 8, width = 15
 )

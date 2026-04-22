@@ -1,0 +1,3 @@
+NameError in file "/Users/krikri/Documents/Projects/aviation-budget/Snakefile", line 30:
+name 'WTC_WTP_FAIR' is not defined
+  File "/Users/krikri/Documents/Projects/aviation-budget/Snakefile", line 30, in <module>

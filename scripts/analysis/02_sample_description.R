@@ -5,34 +5,25 @@ library(dplyr)
 library(purrr)
 library(janitor)
 
-df_us <- read_csv(
-  here("data", "data_clean_us.csv"),
-  show_col_types = FALSE
-) |>
-  mutate(
-    country = "us"
-  )
+if (exists("snakemake")) {
+  clean_us       <- snakemake@input[["us"]]
+  clean_ch       <- snakemake@input[["ch"]]
+  clean_cn       <- snakemake@input[["cn"]]
+  controls_file  <- snakemake@input[["controls"]]
+  summary_out    <- snakemake@output[["summary"]]
+} else {
+  clean_us       <- here("data", "data_clean_us.csv")
+  clean_ch       <- here("data", "data_clean_ch.csv")
+  clean_cn       <- here("data", "data_clean_cn.csv")
+  controls_file  <- here("data", "wtc_wtp_controls_tidy.csv")
+  summary_out    <- here("output", "sample_summary.txt")
+}
 
-df_ch <- read_csv(
-  here("data", "data_clean_ch.csv"),
-  show_col_types = FALSE
-) |>
-  mutate(
-    country = "ch"
-  )
+df_us <- read_csv(clean_us, show_col_types = FALSE) |> mutate(country = "us")
+df_ch <- read_csv(clean_ch, show_col_types = FALSE) |> mutate(country = "ch")
+df_cn <- read_csv(clean_cn, show_col_types = FALSE) |> mutate(country = "cn")
 
-df_cn <- read_csv(
-  here("data", "data_clean_cn.csv"),
-  show_col_types = FALSE
-) |>
-  mutate(
-    country = "cn"
-  )
-
-df_income <- read_csv(
-  here("data", "wtc_wtp_controls_tidy.csv"),
-  show_col_types = FALSE
-) |>
+df_income <- read_csv(controls_file, show_col_types = FALSE) |>
   mutate(income_decile = as.integer(income_decile))
 
 ###################### remove outliers ####################
@@ -45,7 +36,6 @@ df_cn <- df_cn |>
   filter(
     is.na(flying_recent_number) | flying_recent_number <= cutoff
   )
-
 
 ###################### sample description #################
 
@@ -92,12 +82,10 @@ quota_language_ch <- c(
 df_all <- bind_rows(df_ch, df_us, df_cn)
 
 summarize_age <- function(df, country) {
-
   quota_tbl <- tibble(
     age = names(quota_age[[country]]),
     target = unname(quota_age[[country]])
   )
-
   df |>
     count(age) |>
     left_join(quota_tbl, by = "age") |>
@@ -113,12 +101,10 @@ summarize_age <- function(df, country) {
 }
 
 summarize_gender <- function(df, country) {
-
   quota_tbl <- tibble(
     gender = names(quota_gender[[country]]),
     target = unname(quota_gender[[country]])
   )
-
   df |>
     count(gender) |>
     left_join(quota_tbl, by = "gender") |>
@@ -134,12 +120,10 @@ summarize_gender <- function(df, country) {
 }
 
 summarize_language_ch <- function(df) {
-
   quota_tbl <- tibble(
     ch_region = names(quota_language_ch),
     target = unname(quota_language_ch)
   )
-
   df |>
     count(ch_region) |>
     left_join(quota_tbl, by = "ch_region") |>
@@ -155,20 +139,16 @@ summarize_language_ch <- function(df) {
 }
 
 summarize_flying <- function(df) {
-
   flights <- case_when(
     df$flying_ever == "no" ~ 0,
     df$flying_recent == "no" ~ 0,
     TRUE ~ df$flying_recent_number
   )
-
   median_val <- median(flights, na.rm = TRUE)
   q25 <- quantile(flights, 0.25, na.rm = TRUE)
   q75 <- quantile(flights, 0.75, na.rm = TRUE)
   q90 <- quantile(flights, 0.90, na.rm = TRUE)
-
   non_fliers <- mean(flights == 0, na.rm = TRUE)
-
   c(
     paste("Median flights:", round(median_val, 2)),
     paste("25th percentile:", round(q25, 2)),
@@ -179,7 +159,6 @@ summarize_flying <- function(df) {
 }
 
 summarize_income <- function(df_income, country_code) {
-
   df_income |>
     filter(country == country_code) |>
     count(income_decile) |>
@@ -195,7 +174,6 @@ summarize_income <- function(df_income, country_code) {
 }
 
 country_summary <- function(df, country_name, country_code) {
-
   lines <- c(
     paste0("----- ", country_name, " -----"),
     "",
@@ -205,16 +183,9 @@ country_summary <- function(df, country_name, country_code) {
     "Gender distribution:",
     summarize_gender(df, country_code)
   )
-
   if (country_code == "ch") {
-    lines <- c(
-      lines,
-      "",
-      "Language region:",
-      summarize_language_ch(df)
-    )
+    lines <- c(lines, "", "Language region:", summarize_language_ch(df))
   }
-
   lines <- c(
     lines,
     "",
@@ -225,15 +196,13 @@ country_summary <- function(df, country_name, country_code) {
     summarize_income(df_income, country_code),
     ""
   )
-
   return(lines)
 }
 
 total_n <- nrow(df_all)
-
-n_ch <- nrow(df_ch)
-n_us <- nrow(df_us)
-n_cn <- nrow(df_cn)
+n_ch    <- nrow(df_ch)
+n_us    <- nrow(df_us)
+n_cn    <- nrow(df_cn)
 
 max_removed <- df_cn_raw |>
   filter(flying_recent_number > cutoff) |>
@@ -241,27 +210,19 @@ max_removed <- df_cn_raw |>
   pull(max_val)
 
 summary_text <- c(
-
   "Sample summary",
   "================",
-
   paste("Total sample size:", total_n),
   paste("CH sample:", n_ch),
   paste("US sample:", n_us),
   paste("CN sample:", n_cn),
-
   "",
   paste("Outlier cutoff for flying_recent_number:", cutoff),
-  paste("Maximum removed value:", 235),
-
+  paste("Maximum removed value:", max_removed),
   "",
-
   country_summary(df_ch, "Switzerland", "ch"),
   country_summary(df_us, "United States", "us"),
   country_summary(df_cn, "China", "cn")
 )
 
-writeLines(
-  summary_text,
-  here("output", "sample_summary.txt")
-)
+writeLines(summary_text, summary_out)
