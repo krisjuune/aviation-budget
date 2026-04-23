@@ -9,6 +9,25 @@ WTC_WTP_DATA        = "data/wtc_wtp_tidy.csv"
 WTC_WTP_FAIR_DATA   = "data/wtc_wtp_fair_tidy.csv"
 WTC_WTP_CTRL_DATA   = "data/wtc_wtp_controls_tidy.csv"
 
+# robustness check outputs
+ROB_EMM_WTC_HIGHINCOME     = "data/emm_wtc_rob_highincome.csv"
+ROB_EMM_WTP_HIGHINCOME     = "data/emm_wtp_rob_highincome.csv"
+ROB_CONTR_WTC_HIGHINCOME   = "data/contr_wtc_rob_highincome.csv"
+ROB_CONTR_WTP_HIGHINCOME   = "data/contr_wtp_rob_highincome.csv"
+ROB_EMM_WTC_LOWINCOME      = "data/emm_wtc_rob_lowincome.csv"
+ROB_EMM_WTP_LOWINCOME      = "data/emm_wtp_rob_lowincome.csv"
+ROB_CONTR_WTC_LOWINCOME    = "data/contr_wtc_rob_lowincome.csv"
+ROB_CONTR_WTP_LOWINCOME    = "data/contr_wtp_rob_lowincome.csv"
+ROB_EMM_WTC_NONFLIERS_CN   = "data/emm_wtc_rob_nonfliers_cn.csv"
+ROB_EMM_WTP_NONFLIERS_CN   = "data/emm_wtp_rob_nonfliers_cn.csv"
+ROB_CONTR_WTC_NONFLIERS_CN = "data/contr_wtc_rob_nonfliers_cn.csv"
+ROB_CONTR_WTP_NONFLIERS_CN = "data/contr_wtp_rob_nonfliers_cn.csv"
+ROB_EMM_WTC_SPEEDERS       = "data/emm_wtc_rob_speeders.csv"
+ROB_EMM_WTP_SPEEDERS       = "data/emm_wtp_rob_speeders.csv"
+ROB_CONTR_WTC_SPEEDERS     = "data/contr_wtc_rob_speeders.csv"
+ROB_CONTR_WTP_SPEEDERS     = "data/contr_wtp_rob_speeders.csv"
+ROB_TABLES                 = "output/robustness_tables.tex"
+
 # data outputs
 EMM_WTC               = "data/emm_wtc.csv"
 EMM_WTP               = "data/emm_wtp.csv"
@@ -95,7 +114,24 @@ rule all:
         PLOT_CLIM_EMM_CONTR,
         PLOT_CONTR_INCOME,
         PLOT_CONTR_FLIER,
-        PLOT_CONTR_CLIM
+        PLOT_CONTR_CLIM,
+        ROB_EMM_WTC_HIGHINCOME,
+        ROB_EMM_WTP_HIGHINCOME,
+        ROB_CONTR_WTC_HIGHINCOME,
+        ROB_CONTR_WTP_HIGHINCOME,
+        ROB_EMM_WTC_LOWINCOME,
+        ROB_EMM_WTP_LOWINCOME,
+        ROB_CONTR_WTC_LOWINCOME,
+        ROB_CONTR_WTP_LOWINCOME,
+        ROB_EMM_WTC_NONFLIERS_CN,
+        ROB_EMM_WTP_NONFLIERS_CN,
+        ROB_CONTR_WTC_NONFLIERS_CN,
+        ROB_CONTR_WTP_NONFLIERS_CN,
+        ROB_EMM_WTC_SPEEDERS,
+        ROB_EMM_WTP_SPEEDERS,
+        ROB_CONTR_WTC_SPEEDERS,
+        ROB_CONTR_WTP_SPEEDERS,
+        ROB_TABLES
 
 # ----------------------------
 # Preprocess data
@@ -253,3 +289,30 @@ rule plot_subgroup_emm:
         contr_clim       = PLOT_CONTR_CLIM
     script:
         "scripts/plots/13_subgroup_emm.R"
+
+rule robustness_checks:
+    input:
+        controls = WTC_WTP_CTRL_DATA,
+        us       = CLEAN_US,
+        ch       = CLEAN_CH,
+        cn       = CLEAN_CN
+    output:
+        emm_wtc_highincome     = ROB_EMM_WTC_HIGHINCOME,
+        emm_wtp_highincome     = ROB_EMM_WTP_HIGHINCOME,
+        contr_wtc_highincome   = ROB_CONTR_WTC_HIGHINCOME,
+        contr_wtp_highincome   = ROB_CONTR_WTP_HIGHINCOME,
+        emm_wtc_lowincome      = ROB_EMM_WTC_LOWINCOME,
+        emm_wtp_lowincome      = ROB_EMM_WTP_LOWINCOME,
+        contr_wtc_lowincome    = ROB_CONTR_WTC_LOWINCOME,
+        contr_wtp_lowincome    = ROB_CONTR_WTP_LOWINCOME,
+        emm_wtc_nonfliers_cn   = ROB_EMM_WTC_NONFLIERS_CN,
+        emm_wtp_nonfliers_cn   = ROB_EMM_WTP_NONFLIERS_CN,
+        contr_wtc_nonfliers_cn = ROB_CONTR_WTC_NONFLIERS_CN,
+        contr_wtp_nonfliers_cn = ROB_CONTR_WTP_NONFLIERS_CN,
+        emm_wtc_speeders       = ROB_EMM_WTC_SPEEDERS,
+        emm_wtp_speeders       = ROB_EMM_WTP_SPEEDERS,
+        contr_wtc_speeders     = ROB_CONTR_WTC_SPEEDERS,
+        contr_wtp_speeders     = ROB_CONTR_WTP_SPEEDERS,
+        rob_tables             = ROB_TABLES
+    script:
+        "scripts/analysis/07_robustness_checks.R"
