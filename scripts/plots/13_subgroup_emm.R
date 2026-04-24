@@ -40,12 +40,8 @@ if (exists("snakemake")) {
   out_income_emm_contr  <- snakemake@output[["income_emm_contr"]]
   out_flier_emm_contr   <- snakemake@output[["flier_emm_contr"]]
   out_clim_emm_contr    <- snakemake@output[["clim_emm_contr"]]
-  out_contr_income      <- snakemake@output[["contr_income"]]
-  out_contr_flier       <- snakemake@output[["contr_flier"]]
-  out_contr_clim        <- snakemake@output[["contr_clim"]]
   out_contr_combined    <- snakemake@output[["contr_combined"]]
   out_purpose_emm_contr <- snakemake@output[["purpose_emm_contr"]]
-  out_contr_purpose     <- snakemake@output[["contr_purpose"]]
 } else {
   emm_wtc_file          <- here("data", "emm_wtc.csv")
   emm_wtp_file          <- here("data", "emm_wtp.csv")
@@ -74,12 +70,8 @@ if (exists("snakemake")) {
   out_income_emm_contr  <- here("output", "plot_income_emm_contr.png")
   out_flier_emm_contr   <- here("output", "plot_flier_emm_contr.png")
   out_clim_emm_contr    <- here("output", "plot_clim_emm_contr.png")
-  out_contr_income      <- here("output", "plot_contr_income.png")
-  out_contr_flier       <- here("output", "plot_contr_flier.png")
-  out_contr_clim        <- here("output", "plot_contr_clim.png")
-  out_contr_combined    <- here("output", "plot_contr_flier_income.png")
+  out_contr_combined    <- here("output", "plot_contr_flier_purpose.png")
   out_purpose_emm_contr <- here("output", "plot_purpose_emm_contr.png")
-  out_contr_purpose     <- here("output", "plot_contr_purpose.png")
 }
 
 standardize_emm_columns <- function(emm_df) {
@@ -707,63 +699,37 @@ plot_clim_emm_contr <- (plot_wtp_clim | plot_contr_wtp_clim) /
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
 
-plot_income_contr_only <-
-  (plot_contr_wtp_income + labs(title = title_wtp)) /
-  (plot_contr_wtc_income + labs(title = title_wtc)) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
-
-plot_flier_contr_only <-
-  (plot_contr_wtp_flier + labs(title = title_wtp)) /
-  (plot_contr_wtc_flier + labs(title = title_wtc)) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
-
-plot_clim_contr_only <-
-  (plot_contr_wtp_clim + labs(title = title_wtp)) /
-  (plot_contr_wtc_clim + labs(title = title_wtc)) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
-
 plot_purpose_emm_contr <-
   (plot_wtp_purpose | plot_contr_wtp_purpose) /
   (plot_wtc_purpose | plot_contr_wtc_purpose) +
   plot_layout(guides = "collect", axis_titles = "collect") &
   theme(legend.position = "bottom")
 
-plot_purpose_contr_only <-
-  (plot_contr_wtp_purpose + labs(title = title_wtp)) /
-  (plot_contr_wtc_purpose + labs(title = title_wtc)) +
-  plot_layout(guides = "collect", axis_titles = "collect") &
-  theme(legend.position = "bottom")
+############ combined flier × purpose contrast plot #################
 
-############ combined flier × income contrast plot #################
+outcome_levels <- c(
+  "Willingness to pay (WTP)", "Willingness to change (WTC)"
+)
 
 contr_flier_long <- bind_rows(
   contr_wtp_flier |> mutate(outcome = "Willingness to pay (WTP)"),
   contr_wtc_flier |> mutate(outcome = "Willingness to change (WTC)")
 ) |>
-  mutate(outcome = factor(
-    outcome,
-    levels = c("Willingness to pay (WTP)", "Willingness to change (WTC)")
-  ))
+  mutate(outcome = factor(outcome, levels = outcome_levels))
 
-contr_income_long <- bind_rows(
-  contr_wtp_income |> mutate(outcome = "Willingness to pay (WTP)"),
-  contr_wtc_income |> mutate(outcome = "Willingness to change (WTC)")
+contr_purpose_long <- bind_rows(
+  contr_wtp_purpose |> mutate(outcome = "Willingness to pay (WTP)"),
+  contr_wtc_purpose |> mutate(outcome = "Willingness to change (WTC)")
 ) |>
-  mutate(outcome = factor(
-    outcome,
-    levels = c("Willingness to pay (WTP)", "Willingness to change (WTC)")
-  ))
+  mutate(outcome = factor(outcome, levels = outcome_levels))
 
 flier_pal <- setNames(
   viridis::viridis(3, option = "plasma", end = 0.8),
   c("Non-flier", "Average flier", "Frequent flier")
 )
-income_pal <- setNames(
+purpose_pal <- setNames(
   viridis::viridis(3, option = "plasma", end = 0.8),
-  c("Low", "Mid", "High")
+  c("Non-flier", "Leisure flier", "Business flier")
 )
 
 theme_combined <- function() {
@@ -777,12 +743,12 @@ theme_combined <- function() {
 
 pd_comb <- position_dodge(0.3)
 
-# Solid shapes for flying behaviour, hollow for income group
-flier_shapes  <- c(
+# Solid shapes for flying behaviour, hollow for flying purpose
+flier_shapes <- c(
   "Willingness to pay (WTP)"    = 16,
   "Willingness to change (WTC)" = 17
 )
-income_shapes <- c(
+purpose_shapes <- c(
   "Willingness to pay (WTP)"    = 1,
   "Willingness to change (WTC)" = 2
 )
@@ -798,18 +764,22 @@ plot_contr_flier_faceted <- ggplot(
     aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
     width = 0.2, position = pd_comb
   ) +
-  geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3) +
+  geom_hline(
+    yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3
+  ) +
   facet_wrap(~outcome, ncol = 1, scales = "free_x") +
   scale_colour_manual(values = flier_pal, name = "Flying behaviour") +
   scale_shape_manual(values = flier_shapes, guide = "none") +
   ylim(-1.65, 1.5) +
-  labs(title = "A. Flying behaviour", x = NULL, y = "Contrast with control") +
+  labs(
+    title = "A. Flying behaviour", x = NULL, y = "Contrast with control"
+  ) +
   theme_combined()
 
-plot_contr_income_faceted <- ggplot(
-  contr_income_long,
+plot_contr_purpose_faceted <- ggplot(
+  contr_purpose_long,
   aes(x = contrast, y = estimate,
-      colour = income_group, group = income_group,
+      colour = purpose_group, group = purpose_group,
       shape = outcome)
 ) +
   geom_point(position = pd_comb, size = 3) +
@@ -817,12 +787,14 @@ plot_contr_income_faceted <- ggplot(
     aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
     width = 0.2, position = pd_comb
   ) +
-  geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3) +
+  geom_hline(
+    yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3
+  ) +
   facet_wrap(~outcome, ncol = 1, scales = "free_x") +
-  scale_colour_manual(values = income_pal, name = "Income group") +
-  scale_shape_manual(values = income_shapes, guide = "none") +
+  scale_colour_manual(values = purpose_pal, name = "Flying purpose") +
+  scale_shape_manual(values = purpose_shapes, guide = "none") +
   ylim(-1.65, 1.5) +
-  labs(title = "B. Income group", x = NULL, y = "Contrast with control") +
+  labs(title = "B. Flying purpose", x = NULL, y = "Contrast with control") +
   theme_combined() +
   theme(
     axis.title.y = element_blank(),
@@ -831,20 +803,22 @@ plot_contr_income_faceted <- ggplot(
     axis.line.y  = element_blank()
   )
 
-plot_contr_combined <- plot_contr_flier_faceted | plot_contr_income_faceted
+plot_contr_combined <- plot_contr_flier_faceted | plot_contr_purpose_faceted
 
 ################### save #################
 
-ggsave(plot = plot_income_emm_contr, out_income_emm_contr, height = 10, width = 15)
-ggsave(plot = plot_flier_emm_contr,  out_flier_emm_contr,  height = 10, width = 15)
-ggsave(plot = plot_clim_emm_contr,   out_clim_emm_contr,   height = 10, width = 15)
-ggsave(plot = plot_income_contr_only, out_contr_income,     height = 10, width = 15)
-ggsave(plot = plot_flier_contr_only,  out_contr_flier,      height = 10, width = 15)
-ggsave(plot = plot_clim_contr_only,   out_contr_clim,       height = 10, width = 15)
-ggsave(plot = plot_contr_combined,    out_contr_combined,   height = 10, width = 15)
+ggsave(
+  plot = plot_income_emm_contr, out_income_emm_contr, height = 10, width = 15
+)
+ggsave(
+  plot = plot_flier_emm_contr, out_flier_emm_contr, height = 10, width = 15
+)
+ggsave(
+  plot = plot_clim_emm_contr, out_clim_emm_contr, height = 10, width = 15
+)
 ggsave(
   plot = plot_purpose_emm_contr, out_purpose_emm_contr, height = 10, width = 15
 )
 ggsave(
-  plot = plot_purpose_contr_only, out_contr_purpose, height = 10, width = 15
+  plot = plot_contr_combined, out_contr_combined, height = 10, width = 15
 )

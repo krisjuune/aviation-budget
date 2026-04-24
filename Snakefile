@@ -74,15 +74,11 @@ OVERALL_PLOT          = "output/plot_overall_results.png"
 PLOT_INCOME_FLYING    = "output/plot_income_flying.png"
 FAIRNESS_PLOT         = "output/fairness_scores.png"
 FAIRNESS_REPORT       = "output/fairness_means.txt"
-PLOT_INCOME_EMM_CONTR = "output/plot_income_emm_contr.png"
-PLOT_FLIER_EMM_CONTR  = "output/plot_flier_emm_contr.png"
-PLOT_CLIM_EMM_CONTR   = "output/plot_clim_emm_contr.png"
-PLOT_CONTR_INCOME     = "output/plot_contr_income.png"
-PLOT_CONTR_FLIER      = "output/plot_contr_flier.png"
-PLOT_CONTR_CLIM       = "output/plot_contr_clim.png"
-PLOT_CONTR_COMBINED   = "output/plot_contr_flier_income.png"
+PLOT_INCOME_EMM_CONTR  = "output/plot_income_emm_contr.png"
+PLOT_FLIER_EMM_CONTR   = "output/plot_flier_emm_contr.png"
+PLOT_CLIM_EMM_CONTR    = "output/plot_clim_emm_contr.png"
 PLOT_PURPOSE_EMM_CONTR = "output/plot_purpose_emm_contr.png"
-PLOT_CONTR_PURPOSE     = "output/plot_contr_purpose.png"
+PLOT_CONTR_COMBINED    = "output/plot_contr_flier_purpose.png"
 
 
 rule all:
@@ -132,12 +128,8 @@ rule all:
         PLOT_INCOME_EMM_CONTR,
         PLOT_FLIER_EMM_CONTR,
         PLOT_CLIM_EMM_CONTR,
-        PLOT_CONTR_INCOME,
-        PLOT_CONTR_FLIER,
-        PLOT_CONTR_CLIM,
-        PLOT_CONTR_COMBINED,
         PLOT_PURPOSE_EMM_CONTR,
-        PLOT_CONTR_PURPOSE,
+        PLOT_CONTR_COMBINED,
         ROB_EMM_WTC_HIGHINCOME,
         ROB_EMM_WTP_HIGHINCOME,
         ROB_CONTR_WTC_HIGHINCOME,
@@ -319,15 +311,11 @@ rule plot_subgroup_emm:
         contr_wtp_purpose      = CONTR_WTP_PURPOSE,
         contr_flights_purpose  = CONTR_FLIGHTS_PURPOSE
     output:
-        income_emm_contr = PLOT_INCOME_EMM_CONTR,
-        flier_emm_contr  = PLOT_FLIER_EMM_CONTR,
-        clim_emm_contr   = PLOT_CLIM_EMM_CONTR,
-        contr_income     = PLOT_CONTR_INCOME,
-        contr_flier      = PLOT_CONTR_FLIER,
-        contr_clim       = PLOT_CONTR_CLIM,
-        contr_combined    = PLOT_CONTR_COMBINED,
+        income_emm_contr  = PLOT_INCOME_EMM_CONTR,
+        flier_emm_contr   = PLOT_FLIER_EMM_CONTR,
+        clim_emm_contr    = PLOT_CLIM_EMM_CONTR,
         purpose_emm_contr = PLOT_PURPOSE_EMM_CONTR,
-        contr_purpose     = PLOT_CONTR_PURPOSE
+        contr_combined    = PLOT_CONTR_COMBINED
     script:
         "scripts/plots/13_subgroup_emm.R"
 
