@@ -51,7 +51,19 @@ EMM_WTP_CLIM          = "data/emm_wtp_clim.csv"
 CONTR_WTC_CLIM        = "data/contr_wtc_clim.csv"
 CONTR_WTP_CLIM        = "data/contr_wtp_clim.csv"
 CONTR_FLIGHTS_CLIM    = "data/contr_flights_clim.csv"
+EMM_WTC_PURPOSE       = "data/emm_wtc_purpose.csv"
+EMM_WTP_PURPOSE       = "data/emm_wtp_purpose.csv"
+CONTR_WTC_PURPOSE     = "data/contr_wtc_purpose.csv"
+CONTR_WTP_PURPOSE     = "data/contr_wtp_purpose.csv"
+CONTR_FLIGHTS_PURPOSE = "data/contr_flights_purpose.csv"
 CORR_INCOME_FLYING    = "data/corr_income_flying.csv"
+
+# sample exploration plots
+PLOT_SAMPLE_DISTS        = "output/plot_sample_distributions.png"
+PLOT_FLYING_PURPOSE      = "output/plot_flying_purpose.png"
+PLOT_FLYING_PURPOSE_COV  = "output/plot_flying_purpose_covariates.png"
+PLOT_FAIRNESS_ASSOC      = "output/plot_fairness_associations.png"
+PLOT_CORRELATIONS        = "output/plot_variable_correlations.png"
 
 # output plots and txt files
 SAMPLE_SUMMARY        = "output/sample_summary.txt"
@@ -68,6 +80,9 @@ PLOT_CLIM_EMM_CONTR   = "output/plot_clim_emm_contr.png"
 PLOT_CONTR_INCOME     = "output/plot_contr_income.png"
 PLOT_CONTR_FLIER      = "output/plot_contr_flier.png"
 PLOT_CONTR_CLIM       = "output/plot_contr_clim.png"
+PLOT_CONTR_COMBINED   = "output/plot_contr_flier_income.png"
+PLOT_PURPOSE_EMM_CONTR = "output/plot_purpose_emm_contr.png"
+PLOT_CONTR_PURPOSE     = "output/plot_contr_purpose.png"
 
 
 rule all:
@@ -104,6 +119,11 @@ rule all:
         CONTR_WTC_CLIM,
         CONTR_WTP_CLIM,
         CONTR_FLIGHTS_CLIM,
+        EMM_WTC_PURPOSE,
+        EMM_WTP_PURPOSE,
+        CONTR_WTC_PURPOSE,
+        CONTR_WTP_PURPOSE,
+        CONTR_FLIGHTS_PURPOSE,
         OVERALL_PLOT,
         CORR_INCOME_FLYING,
         PLOT_INCOME_FLYING,
@@ -115,6 +135,9 @@ rule all:
         PLOT_CONTR_INCOME,
         PLOT_CONTR_FLIER,
         PLOT_CONTR_CLIM,
+        PLOT_CONTR_COMBINED,
+        PLOT_PURPOSE_EMM_CONTR,
+        PLOT_CONTR_PURPOSE,
         ROB_EMM_WTC_HIGHINCOME,
         ROB_EMM_WTP_HIGHINCOME,
         ROB_CONTR_WTC_HIGHINCOME,
@@ -131,7 +154,12 @@ rule all:
         ROB_EMM_WTP_SPEEDERS,
         ROB_CONTR_WTC_SPEEDERS,
         ROB_CONTR_WTP_SPEEDERS,
-        ROB_TABLES
+        ROB_TABLES,
+        PLOT_SAMPLE_DISTS,
+        PLOT_FLYING_PURPOSE,
+        PLOT_FLYING_PURPOSE_COV,
+        PLOT_FAIRNESS_ASSOC,
+        PLOT_CORRELATIONS
 
 # ----------------------------
 # Preprocess data
@@ -222,7 +250,12 @@ rule lmm_subgroups:
         emm_wtp_clim         = EMM_WTP_CLIM,
         contr_wtc_clim       = CONTR_WTC_CLIM,
         contr_wtp_clim       = CONTR_WTP_CLIM,
-        contr_flights_clim   = CONTR_FLIGHTS_CLIM
+        contr_flights_clim   = CONTR_FLIGHTS_CLIM,
+        emm_wtc_purpose       = EMM_WTC_PURPOSE,
+        emm_wtp_purpose       = EMM_WTP_PURPOSE,
+        contr_wtc_purpose     = CONTR_WTC_PURPOSE,
+        contr_wtp_purpose     = CONTR_WTP_PURPOSE,
+        contr_flights_purpose = CONTR_FLIGHTS_PURPOSE
     script:
         "scripts/analysis/06_lmm_subgroups.R"
 
@@ -279,14 +312,22 @@ rule plot_subgroup_emm:
         emm_wtp_clim          = EMM_WTP_CLIM,
         contr_wtc_clim        = CONTR_WTC_CLIM,
         contr_wtp_clim        = CONTR_WTP_CLIM,
-        contr_flights_clim    = CONTR_FLIGHTS_CLIM
+        contr_flights_clim    = CONTR_FLIGHTS_CLIM,
+        emm_wtc_purpose        = EMM_WTC_PURPOSE,
+        emm_wtp_purpose        = EMM_WTP_PURPOSE,
+        contr_wtc_purpose      = CONTR_WTC_PURPOSE,
+        contr_wtp_purpose      = CONTR_WTP_PURPOSE,
+        contr_flights_purpose  = CONTR_FLIGHTS_PURPOSE
     output:
         income_emm_contr = PLOT_INCOME_EMM_CONTR,
         flier_emm_contr  = PLOT_FLIER_EMM_CONTR,
         clim_emm_contr   = PLOT_CLIM_EMM_CONTR,
         contr_income     = PLOT_CONTR_INCOME,
         contr_flier      = PLOT_CONTR_FLIER,
-        contr_clim       = PLOT_CONTR_CLIM
+        contr_clim       = PLOT_CONTR_CLIM,
+        contr_combined    = PLOT_CONTR_COMBINED,
+        purpose_emm_contr = PLOT_PURPOSE_EMM_CONTR,
+        contr_purpose     = PLOT_CONTR_PURPOSE
     script:
         "scripts/plots/13_subgroup_emm.R"
 
@@ -316,3 +357,19 @@ rule robustness_checks:
         rob_tables             = ROB_TABLES
     script:
         "scripts/analysis/07_robustness_checks.R"
+
+rule sample_exploration:
+    input:
+        controls = WTC_WTP_CTRL_DATA,
+        fair     = WTC_WTP_FAIR_DATA,
+        us       = CLEAN_US,
+        ch       = CLEAN_CH,
+        cn       = CLEAN_CN
+    output:
+        distributions      = PLOT_SAMPLE_DISTS,
+        flying_purpose     = PLOT_FLYING_PURPOSE,
+        purpose_covariates = PLOT_FLYING_PURPOSE_COV,
+        fairness_assoc     = PLOT_FAIRNESS_ASSOC,
+        correlations       = PLOT_CORRELATIONS
+    script:
+        "scripts/analysis/03_sample_exploration.R"
