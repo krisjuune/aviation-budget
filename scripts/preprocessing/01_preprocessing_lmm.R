@@ -232,7 +232,8 @@ df_demo <- map_dfr(
     personal_income,
     flying_ever,
     flying_recent,
-    flying_recent_number
+    flying_recent_number,
+    flying_purpose
   )
 )
 
