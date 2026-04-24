@@ -30,6 +30,11 @@ if (exists("snakemake")) {
   out_contr_wtc_clim      <- snakemake@output[["contr_wtc_clim"]]
   out_contr_wtp_clim      <- snakemake@output[["contr_wtp_clim"]]
   out_contr_flights_clim  <- snakemake@output[["contr_flights_clim"]]
+  out_emm_wtc_purpose       <- snakemake@output[["emm_wtc_purpose"]]
+  out_emm_wtp_purpose       <- snakemake@output[["emm_wtp_purpose"]]
+  out_contr_wtc_purpose     <- snakemake@output[["contr_wtc_purpose"]]
+  out_contr_wtp_purpose     <- snakemake@output[["contr_wtp_purpose"]]
+  out_contr_flights_purpose <- snakemake@output[["contr_flights_purpose"]]
 } else {
   controls_file <- here("data", "wtc_wtp_controls_tidy.csv")
   fair_file     <- here("data", "wtc_wtp_fair_tidy.csv")
@@ -48,6 +53,11 @@ if (exists("snakemake")) {
   out_contr_wtc_clim       <- here("data", "contr_wtc_clim.csv")
   out_contr_wtp_clim       <- here("data", "contr_wtp_clim.csv")
   out_contr_flights_clim   <- here("data", "contr_flights_clim.csv")
+  out_emm_wtc_purpose       <- here("data", "emm_wtc_purpose.csv")
+  out_emm_wtp_purpose       <- here("data", "emm_wtp_purpose.csv")
+  out_contr_wtc_purpose     <- here("data", "contr_wtc_purpose.csv")
+  out_contr_wtp_purpose     <- here("data", "contr_wtp_purpose.csv")
+  out_contr_flights_purpose <- here("data", "contr_flights_purpose.csv")
 }
 
 data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
@@ -86,7 +96,16 @@ data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
       clim_concern_score <= quantile(clim_concern_score, 0.67, na.rm = TRUE) ~ "mid",
       TRUE ~ "high"
     ),
-    clim_concern = factor(clim_concern, levels = c("low", "mid", "high"))
+    clim_concern = factor(clim_concern, levels = c("low", "mid", "high")),
+    purpose_group = case_when(
+      flying_recent == "no" | flying_ever == "no" ~ "non-flier",
+      str_detect(coalesce(flying_purpose, ""), "business") ~ "business flier",
+      TRUE ~ "leisure flier"
+    ),
+    purpose_group = factor(
+      purpose_group,
+      levels = c("non-flier", "leisure flier", "business flier")
+    )
   )
 
 data_fair <- read_csv(fair_file, show_col_types = FALSE)
@@ -250,6 +269,78 @@ emm_wtp_clim   <- add_group_n(emm_wtp_clim,   data_controls, "clim_concern")
 contr_wtc_clim <- add_group_n(contr_wtc_clim, data_controls, "clim_concern")
 contr_wtp_clim <- add_group_n(contr_wtp_clim, data_controls, "clim_concern")
 
+#################### flying purpose models ###############################
+
+model_wtc <- lmer(
+  wtc ~ treatment * purpose_group + (1 | country),
+  data = data_controls
+)
+model_wtp <- lmer(
+  wtp ~ treatment * purpose_group + relative_added_cost + (1 | country),
+  data = data_controls
+)
+model_flights <- lmer(
+  planned_flights ~ time * treatment * purpose_group +
+    (1 | id) + (1 | country),
+  data = data_controls
+)
+
+emm_wtc_purpose  <- emmeans(model_wtc, ~ purpose_group * treatment)
+emm_wtp_purpose  <- emmeans(model_wtp, ~ purpose_group * treatment)
+emm_time_purpose <- emmeans(
+  model_flights, ~ time, by = c("purpose_group", "treatment")
+)
+
+contr_wtc_purpose <- contrast(
+  emm_wtc_purpose,
+  method = "trt.vs.ctrl", ref = 1, by = "purpose_group"
+) |>
+  as.data.frame() |>
+  as_tibble() |>
+  mutate(
+    treatment = str_replace(contrast, "\\s*-\\s*control\\s*$", ""),
+    treatment = factor(treatment, levels = c("egal", "limit", "prior", "prop"))
+  )
+
+contr_wtp_purpose <- contrast(
+  emm_wtp_purpose,
+  method = "trt.vs.ctrl", ref = 1, by = "purpose_group"
+) |>
+  as.data.frame() |>
+  as_tibble() |>
+  mutate(
+    treatment = str_replace(contrast, "\\s*-\\s*control\\s*$", ""),
+    treatment = factor(treatment, levels = c("egal", "limit", "prior", "prop"))
+  )
+
+emm_delta_purpose <- contrast(
+  emm_time_purpose,
+  method = list("delta" = c(-1, 1)), by = c("treatment", "purpose_group")
+)
+contr_flights_purpose <- contrast(
+  emm_delta_purpose,
+  method = "trt.vs.ctrl", ref = 1, by = "purpose_group"
+) |>
+  as.data.frame() |>
+  as_tibble() |>
+  mutate(
+    treatment = str_replace(contrast, "\\s*-\\s*control\\s*$", ""),
+    treatment = factor(treatment, levels = c("egal", "limit", "prior", "prop"))
+  )
+
+emm_wtc_purpose   <- add_group_n(
+  emm_wtc_purpose, data_controls, "purpose_group"
+)
+emm_wtp_purpose   <- add_group_n(
+  emm_wtp_purpose, data_controls, "purpose_group"
+)
+contr_wtc_purpose <- add_group_n(
+  contr_wtc_purpose, data_controls, "purpose_group"
+)
+contr_wtp_purpose <- add_group_n(
+  contr_wtp_purpose, data_controls, "purpose_group"
+)
+
 #################### save outputs ###############################
 
 write.csv(emm_wtc_income,        out_emm_wtc_income)
@@ -267,3 +358,8 @@ write.csv(emm_wtp_clim,          out_emm_wtp_clim)
 write.csv(contr_wtc_clim,        out_contr_wtc_clim)
 write.csv(contr_wtp_clim,        out_contr_wtp_clim)
 write.csv(contr_flights_clim,    out_contr_flights_clim)
+write.csv(emm_wtc_purpose,        out_emm_wtc_purpose)
+write.csv(emm_wtp_purpose,        out_emm_wtp_purpose)
+write.csv(contr_wtc_purpose,      out_contr_wtc_purpose)
+write.csv(contr_wtp_purpose,      out_contr_wtp_purpose)
+write.csv(contr_flights_purpose,  out_contr_flights_purpose)
