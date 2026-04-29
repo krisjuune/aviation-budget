@@ -59,21 +59,27 @@ CONTR_FLIGHTS_PURPOSE = "data/contr_flights_purpose.csv"
 CORR_INCOME_FLYING    = "data/corr_income_flying.csv"
 
 # sample exploration plots
-PLOT_SAMPLE_DISTS        = "output/plot_sample_distributions.png"
-PLOT_FLYING_PURPOSE      = "output/plot_flying_purpose.png"
-PLOT_FLYING_PURPOSE_COV  = "output/plot_flying_purpose_covariates.png"
-PLOT_FAIRNESS_ASSOC      = "output/plot_fairness_associations.png"
-PLOT_CORRELATIONS        = "output/plot_variable_correlations.png"
+PLOT_DIST_INCOME        = "output/sample/plot_dist_income.png"
+PLOT_DIST_FLIGHTS       = "output/sample/plot_dist_flights.png"
+PLOT_DIST_CLIM          = "output/sample/plot_dist_clim.png"
+PLOT_DIST_EDUCATION     = "output/sample/plot_dist_education.png"
+PLOT_DIST_AGE           = "output/sample/plot_dist_age.png"
+PLOT_BIVAR_INCOME_CLIM  = "output/sample/plot_bivar_income_clim.png"
+PLOT_BIVAR_FLIGHTS_CLIM = "output/sample/plot_bivar_flights_clim.png"
+PLOT_BIVAR_EDU_INCOME   = "output/sample/plot_bivar_edu_income.png"
+PLOT_BIVAR_AGE_CLIM     = "output/sample/plot_bivar_age_clim.png"
+PLOT_FLYING_PURPOSE     = "output/sample/plot_flying_purpose.png"
+PLOT_CORR_POOLED        = "output/sample/plot_corr_pooled.png"
+PLOT_CORR_BY_COUNTRY    = "output/sample/plot_corr_by_country.png"
 
 # output plots and txt files
-SAMPLE_SUMMARY        = "output/sample_summary.txt"
+SAMPLE_SUMMARY        = "output/sample/sample_summary.txt"
 ASSUMPTIONS_WTC       = "output/assumptions_wtc.png"
 ASSUMPTIONS_WTP       = "output/assumptions_wtp.png"
 COVARIATES_PLOT       = "output/plot_covariates.png"
 OVERALL_PLOT          = "output/plot_overall_results.png"
 PLOT_INCOME_FLYING    = "output/plot_income_flying.png"
 FAIRNESS_PLOT         = "output/fairness_scores.png"
-FAIRNESS_REPORT       = "output/fairness_means.txt"
 PLOT_INCOME_EMM_CONTR  = "output/plot_income_emm_contr.png"
 PLOT_FLIER_EMM_CONTR   = "output/plot_flier_emm_contr.png"
 PLOT_CLIM_EMM_CONTR    = "output/plot_clim_emm_contr.png"
@@ -124,7 +130,6 @@ rule all:
         CORR_INCOME_FLYING,
         PLOT_INCOME_FLYING,
         FAIRNESS_PLOT,
-        FAIRNESS_REPORT,
         PLOT_INCOME_EMM_CONTR,
         PLOT_FLIER_EMM_CONTR,
         PLOT_CLIM_EMM_CONTR,
@@ -147,11 +152,18 @@ rule all:
         ROB_CONTR_WTC_SPEEDERS,
         ROB_CONTR_WTP_SPEEDERS,
         ROB_TABLES,
-        PLOT_SAMPLE_DISTS,
+        PLOT_DIST_INCOME,
+        PLOT_DIST_FLIGHTS,
+        PLOT_DIST_CLIM,
+        PLOT_DIST_EDUCATION,
+        PLOT_DIST_AGE,
+        PLOT_BIVAR_INCOME_CLIM,
+        PLOT_BIVAR_FLIGHTS_CLIM,
+        PLOT_BIVAR_EDU_INCOME,
+        PLOT_BIVAR_AGE_CLIM,
         PLOT_FLYING_PURPOSE,
-        PLOT_FLYING_PURPOSE_COV,
-        PLOT_FAIRNESS_ASSOC,
-        PLOT_CORRELATIONS
+        PLOT_CORR_POOLED,
+        PLOT_CORR_BY_COUNTRY
 
 # ----------------------------
 # Preprocess data
@@ -279,8 +291,7 @@ rule plot_fairness_scores:
     input:
         fair = WTC_WTP_FAIR_DATA
     output:
-        fairness_plot   = FAIRNESS_PLOT,
-        fairness_report = FAIRNESS_REPORT
+        fairness_plot = FAIRNESS_PLOT
     script:
         "scripts/plots/12_fairness_scores.R"
 
@@ -354,10 +365,17 @@ rule sample_exploration:
         ch       = CLEAN_CH,
         cn       = CLEAN_CN
     output:
-        distributions      = PLOT_SAMPLE_DISTS,
+        dist_income        = PLOT_DIST_INCOME,
+        dist_flights       = PLOT_DIST_FLIGHTS,
+        dist_clim          = PLOT_DIST_CLIM,
+        dist_education     = PLOT_DIST_EDUCATION,
+        dist_age           = PLOT_DIST_AGE,
+        bivar_income_clim  = PLOT_BIVAR_INCOME_CLIM,
+        bivar_flights_clim = PLOT_BIVAR_FLIGHTS_CLIM,
+        bivar_edu_income   = PLOT_BIVAR_EDU_INCOME,
+        bivar_age_clim     = PLOT_BIVAR_AGE_CLIM,
         flying_purpose     = PLOT_FLYING_PURPOSE,
-        purpose_covariates = PLOT_FLYING_PURPOSE_COV,
-        fairness_assoc     = PLOT_FAIRNESS_ASSOC,
-        correlations       = PLOT_CORRELATIONS
+        corr_pooled        = PLOT_CORR_POOLED,
+        corr_by_country    = PLOT_CORR_BY_COUNTRY
     script:
         "scripts/analysis/03_sample_exploration.R"
