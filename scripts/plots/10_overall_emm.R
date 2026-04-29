@@ -17,13 +17,21 @@ if (exists("snakemake")) {
   emm_wtp_file  <- snakemake@input[["emm_wtp"]]
   contr_wtc_file <- snakemake@input[["contr_wtc"]]
   contr_wtp_file <- snakemake@input[["contr_wtp"]]
-  plot_out      <- snakemake@output[["overall_plot"]]
+  plot_out           <- snakemake@output[["overall_plot"]]
+  main_text_size     <- snakemake@config[["main_text_size"]]
+  point_size         <- snakemake@config[["point_size"]]
+  errorbar_linewidth <- snakemake@config[["errorbar_linewidth"]]
+  hline_linewidth    <- snakemake@config[["hline_linewidth"]]
 } else {
-  emm_wtc_file   <- here("data", "emm_wtc.csv")
-  emm_wtp_file   <- here("data", "emm_wtp.csv")
-  contr_wtc_file <- here("data", "contr_wtc.csv")
-  contr_wtp_file <- here("data", "contr_wtp.csv")
-  plot_out       <- here("output", "plot_overall_results.png")
+  emm_wtc_file       <- here("data", "emm_wtc.csv")
+  emm_wtp_file       <- here("data", "emm_wtp.csv")
+  contr_wtc_file     <- here("data", "contr_wtc.csv")
+  contr_wtp_file     <- here("data", "contr_wtp.csv")
+  plot_out           <- here("output", "plot_overall_results.png")
+  main_text_size     <- 14
+  point_size         <- 3
+  errorbar_linewidth <- 0.2
+  hline_linewidth    <- 0.3
 }
 
 standardize_emm_columns <- function(emm_df) {
@@ -36,7 +44,7 @@ standardize_emm_columns <- function(emm_df) {
   return(emm_df)
 }
 
-theme_main <- function(main_text_size = 14) {
+theme_main <- function() {
   theme_classic() +
     theme(
       text = element_text(size = main_text_size),
@@ -96,32 +104,32 @@ main_colour <- "#3B4CC0"
 
 ############# overall plots #################
 
-plot_emmeans_overall <- function(emm, title, shape = 16, main_text_size = 14) {
+plot_emmeans_overall <- function(emm, title, shape = 16) {
   ymin_col <- if ("asymp.LCL" %in% names(emm)) "asymp.LCL" else "lower.CL"
   ymax_col <- if ("asymp.UCL" %in% names(emm)) "asymp.UCL" else "upper.CL"
   ggplot(emm, aes(x = treatment, y = emmean, group = 1)) +
-    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = 0.4) +
+    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = hline_linewidth) +
     geom_errorbar(
       aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]]),
-      width = 0.08, linewidth = 0.7, colour = main_colour
+      width = 0.08, linewidth = errorbar_linewidth, colour = main_colour
     ) +
-    geom_point(size = 2.5, shape = shape, colour = main_colour) +
+    geom_point(size = point_size, shape = shape, colour = main_colour) +
     coord_cartesian(ylim = c(1.4, 3.6)) +
     labs(title = title, y = "Marginal means", x = NULL) +
-    theme_main(main_text_size)
+    theme_main()
 }
 
-plot_contrasts_overall <- function(contr, title, shape = 16, main_text_size = 14) {
+plot_contrasts_overall <- function(contr, title, shape = 16) {
   ggplot(contr, aes(x = contrast, y = estimate, group = 1)) +
-    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.4) +
+    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = hline_linewidth) +
     geom_errorbar(
       aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-      width = 0.08, linewidth = 0.7, colour = main_colour
+      width = 0.08, linewidth = errorbar_linewidth, colour = main_colour
     ) +
-    geom_point(size = 2.5, shape = shape, colour = main_colour) +
+    geom_point(size = point_size, shape = shape, colour = main_colour) +
     coord_cartesian(ylim = c(-1, 1)) +
     labs(title = title, y = "Contrast with control", x = NULL) +
-    theme_main(main_text_size)
+    theme_main()
 }
 
 title_wtp <- "A. Effect of surcharge designs on willingness to pay"

@@ -26,6 +26,9 @@ if (exists("snakemake")) {
   out_flying_purpose     <- snakemake@output[["flying_purpose"]]
   out_corr_pooled        <- snakemake@output[["corr_pooled"]]
   out_corr_by_country    <- snakemake@output[["corr_by_country"]]
+  main_text_size         <- snakemake@config[["main_text_size"]]
+  point_size             <- snakemake@config[["point_size"]]
+  line_linewidth         <- snakemake@config[["line_linewidth"]]
 } else {
   controls_file          <- here("data", "wtc_wtp_controls_tidy.csv")
   fair_file              <- here("data", "wtc_wtp_fair_tidy.csv")
@@ -44,6 +47,9 @@ if (exists("snakemake")) {
   out_flying_purpose     <- here("output", "sample", "plot_flying_purpose.png")
   out_corr_pooled        <- here("output", "sample", "plot_corr_pooled.png")
   out_corr_by_country    <- here("output", "sample", "plot_corr_by_country.png")
+  main_text_size         <- 14
+  point_size             <- 3
+  line_linewidth         <- 1
 }
 
 dir.create(dirname(out_dist_income), showWarnings = FALSE, recursive = TRUE)
@@ -105,10 +111,10 @@ p95_flights <- quantile(df$flying_recent_number, 0.95, na.rm = TRUE)
 
 ######################### theme #########################
 
-theme_explore <- function(text_size = 13) {
+theme_explore <- function() {
   theme_classic() +
     theme(
-      text             = element_text(size = text_size),
+      text             = element_text(size = main_text_size),
       strip.background = element_blank(),
       strip.text       = element_text(face = "bold")
     )
@@ -200,7 +206,7 @@ plot_bivar_income_clim <- df |>
     fill = "#66C2A5", alpha = 0.65,
     draw_quantiles = c(0.25, 0.5, 0.75)
   ) +
-  stat_summary(fun = mean, geom = "point", shape = 18, size = 2.5) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = point_size) +
   facet_wrap(~country_label, nrow = 1) +
   labs(
     x       = "Income decile",
@@ -216,7 +222,7 @@ plot_bivar_flights_clim <- df |>
   ggplot(aes(x = flights_display, y = clim_concern_score)) +
   geom_point(alpha = 0.12, size = 1) +
   geom_smooth(
-    method = "lm", colour = "#D6604D", fill = "#F4A582", linewidth = 0.9
+    method = "lm", colour = "#D6604D", fill = "#F4A582", linewidth = line_linewidth
   ) +
   facet_wrap(~country_label, nrow = 1) +
   labs(
@@ -233,7 +239,7 @@ plot_bivar_edu_income <- df |>
     fill = "#FC8D59", alpha = 0.65,
     draw_quantiles = c(0.25, 0.5, 0.75)
   ) +
-  stat_summary(fun = mean, geom = "point", shape = 18, size = 2.5) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = point_size) +
   facet_wrap(~country_label, nrow = 1) +
   scale_y_continuous(breaks = 1:10) +
   labs(
@@ -251,7 +257,7 @@ plot_bivar_age_clim <- df |>
     fill = "#FDAE61", alpha = 0.65,
     draw_quantiles = c(0.25, 0.5, 0.75)
   ) +
-  stat_summary(fun = mean, geom = "point", shape = 18, size = 2.5) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = point_size) +
   facet_wrap(~country_label, nrow = 1) +
   labs(
     x       = "Age group",
@@ -332,7 +338,7 @@ var_labels_corr <- c(
   age_num              = "Age"
 )
 
-make_corr_heatmap <- function(data, title, text_size = 13, label_size = 3.5) {
+make_corr_heatmap <- function(data, title, label_size = 3.5) {
   mat <- cor(
     data[, vars_corr], method = "spearman", use = "pairwise.complete.obs"
   )
@@ -359,7 +365,7 @@ make_corr_heatmap <- function(data, title, text_size = 13, label_size = 3.5) {
     labs(x = NULL, y = NULL, title = title) +
     theme_classic() +
     theme(
-      text          = element_text(size = text_size),
+      text          = element_text(size = main_text_size),
       axis.text.x   = element_text(angle = 45, hjust = 1),
       panel.grid    = element_blank()
     )
@@ -401,7 +407,7 @@ plot_corr_by_country <- df |>
   labs(x = NULL, y = NULL, title = "Spearman correlation matrix by country") +
   theme_classic() +
   theme(
-    text             = element_text(size = 11),
+    text             = element_text(size = main_text_size),
     axis.text.x      = element_text(angle = 45, hjust = 1),
     panel.grid       = element_blank(),
     strip.background = element_blank(),

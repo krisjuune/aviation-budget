@@ -23,9 +23,13 @@ if (exists("snakemake")) {
   out_contr_wtp       <- snakemake@output[["contr_wtp"]]
   out_assumptions_wtc <- snakemake@output[["assumptions_wtc"]]
   out_assumptions_wtp <- snakemake@output[["assumptions_wtp"]]
+  main_text_size     <- snakemake@config[["main_text_size"]]
+  point_size         <- snakemake@config[["point_size"]]
+  errorbar_linewidth <- snakemake@config[["errorbar_linewidth"]]
+  colour_scheme      <- snakemake@config[["colour_scheme"]]
 } else {
-  wtc_wtp_file   <- here("data", "wtc_wtp_tidy.csv")
-  fair_file      <- here("data", "wtc_wtp_fair_tidy.csv")
+  wtc_wtp_file        <- here("data", "wtc_wtp_tidy.csv")
+  fair_file           <- here("data", "wtc_wtp_fair_tidy.csv")
   out_emm_wtc         <- here("data", "emm_wtc.csv")
   out_emm_wtp         <- here("data", "emm_wtp.csv")
   out_emm_wtc_redamt  <- here("data", "emm_wtc_redamt.csv")
@@ -35,6 +39,10 @@ if (exists("snakemake")) {
   out_contr_wtp       <- here("data", "contr_wtp.csv")
   out_assumptions_wtc <- here("output", "assumptions_wtc.png")
   out_assumptions_wtp <- here("output", "assumptions_wtp.png")
+  main_text_size      <- 14
+  point_size          <- 3
+  errorbar_linewidth  <- 0.2
+  colour_scheme       <- "plasma"
 }
 
 data <- read_csv(wtc_wtp_file, show_col_types = FALSE)
@@ -71,7 +79,7 @@ data_flights <- data_flights |>
 
 ################## plot functions #####################
 
-plot_flight_change <- function(emm, plot_30 = TRUE, main_text_size = 14) {
+plot_flight_change <- function(emm, plot_30 = TRUE) {
   diffs_df <- contrast(emm, method = "pairwise") |>
     as.data.frame()
 
@@ -81,13 +89,13 @@ plot_flight_change <- function(emm, plot_30 = TRUE, main_text_size = 14) {
   }
 
   ggplot(diffs_df, aes(x = treatment, y = estimate, color = red_amt)) +
-    geom_point(size = 3, position = position_dodge(0.3)) +
+    geom_point(size = point_size, position = position_dodge(0.3)) +
     geom_errorbar(
       aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-      width = 0.2,
+      width = 0.2, linewidth = errorbar_linewidth,
       position = position_dodge(0.3)
     ) +
-    scale_color_viridis_d(option = "plasma", end = .8) +
+    scale_color_viridis_d(option = colour_scheme, end = .8) +
     theme_classic() +
     labs(y = NULL, x = NULL, color = "Emissions reductions") +
     ylim(1, 4) +

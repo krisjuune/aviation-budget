@@ -10,10 +10,14 @@ library(patchwork)
 
 if (exists("snakemake")) {
   fair_file    <- snakemake@input[["fair"]]
-  plot_out     <- snakemake@output[["fairness_plot"]]
+  plot_out       <- snakemake@output[["fairness_plot"]]
+  main_text_size <- snakemake@config[["main_text_size"]]
+  colour_scheme  <- snakemake@config[["colour_scheme"]]
 } else {
-  fair_file    <- here("data", "wtc_wtp_fair_tidy.csv")
-  plot_out     <- here("output", "fairness_scores.png")
+  fair_file      <- here("data", "wtc_wtp_fair_tidy.csv")
+  plot_out       <- here("output", "fairness_scores.png")
+  main_text_size <- 14
+  colour_scheme  <- "plasma"
 }
 
 data_fair <- read_csv(fair_file, show_col_types = FALSE)
@@ -117,7 +121,7 @@ plot_fairness <- function(data, self_var, group_var) {
     facet_wrap(~fairness_type, nrow = 1) +
     coord_flip() +
     scale_fill_viridis_d(
-      option = "plasma",
+      option = colour_scheme,
       begin = 0,
       end = 1,
       labels = likert_labels,
@@ -126,11 +130,11 @@ plot_fairness <- function(data, self_var, group_var) {
     guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
     scale_y_continuous(labels = percent_format()) +
     labs(x = NULL, y = "Share of respondents") +
-    theme_classic(base_size = 14) +
+    theme_classic(base_size = main_text_size) +
     theme(
       legend.position = "bottom",
       strip.background = element_blank(),
-      strip.text.x = element_text(size = 14, face = "bold")
+      strip.text.x = element_text(size = main_text_size, face = "bold")
     ) +
     geom_text(
       data = fairness_means,

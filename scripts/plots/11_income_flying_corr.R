@@ -13,14 +13,16 @@ library(patchwork)
 if (exists("snakemake")) {
   controls_file <- snakemake@input[["controls"]]
   corr_out      <- snakemake@output[["corr"]]
-  plot_out      <- snakemake@output[["plot"]]
+  plot_out       <- snakemake@output[["plot"]]
+  main_text_size <- snakemake@config[["main_text_size"]]
+  colour_scheme  <- snakemake@config[["colour_scheme"]]
 } else {
-  controls_file <- here("data", "wtc_wtp_controls_tidy.csv")
-  corr_out      <- here("data", "corr_income_flying.csv")
-  plot_out      <- here("output", "plot_income_flying.png")
+  controls_file  <- here("data", "wtc_wtp_controls_tidy.csv")
+  corr_out       <- here("data", "corr_income_flying.csv")
+  plot_out       <- here("output", "plot_income_flying.png")
+  main_text_size <- 14
+  colour_scheme  <- "plasma"
 }
-
-main_text_size <- 14
 
 data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
   filter(!is.na(wtc)) |>
@@ -80,7 +82,7 @@ plot_income_flying <- ggplot(data_controls_num, aes(
     y = "Income decile"
   ) +
   theme_classic() +
-  scale_fill_viridis_d(option = "plasma", guide = "none") +
+  scale_fill_viridis_d(option = colour_scheme, guide = "none") +
   theme(
     text = element_text(size = main_text_size),
     strip.background = element_blank(),

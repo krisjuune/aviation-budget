@@ -1,0 +1,9 @@
+html_reports: false
+
+# plot aesthetics
+main_text_size: 14
+point_size: 4.5
+errorbar_linewidth: 0.6
+hline_linewidth: 0.5
+line_linewidth: 0.9
+colour_scheme: "plasma"

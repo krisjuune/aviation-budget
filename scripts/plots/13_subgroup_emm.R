@@ -42,6 +42,11 @@ if (exists("snakemake")) {
   out_clim_emm_contr    <- snakemake@output[["clim_emm_contr"]]
   out_contr_combined    <- snakemake@output[["contr_combined"]]
   out_purpose_emm_contr <- snakemake@output[["purpose_emm_contr"]]
+  main_text_size     <- snakemake@config[["main_text_size"]]
+  point_size         <- snakemake@config[["point_size"]]
+  errorbar_linewidth <- snakemake@config[["errorbar_linewidth"]]
+  hline_linewidth    <- snakemake@config[["hline_linewidth"]]
+  colour_scheme      <- snakemake@config[["colour_scheme"]]
 } else {
   emm_wtc_file          <- here("data", "emm_wtc.csv")
   emm_wtp_file          <- here("data", "emm_wtp.csv")
@@ -72,6 +77,11 @@ if (exists("snakemake")) {
   out_clim_emm_contr    <- here("output", "plot_clim_emm_contr.png")
   out_contr_combined    <- here("output", "plot_contr_flier_purpose.png")
   out_purpose_emm_contr <- here("output", "plot_purpose_emm_contr.png")
+  main_text_size     <- 14
+  point_size         <- 3
+  errorbar_linewidth <- 0.2
+  hline_linewidth    <- 0.3
+  colour_scheme      <- "plasma"
 }
 
 standardize_emm_columns <- function(emm_df) {
@@ -84,7 +94,7 @@ standardize_emm_columns <- function(emm_df) {
   return(emm_df)
 }
 
-theme_main <- function(main_text_size = 14) {
+theme_main <- function() {
   theme_classic() +
     theme(
       text = element_text(size = main_text_size),
@@ -460,7 +470,7 @@ contr_delta_purpose <- read_csv(
 
 make_subgroup_scale <- function(subgroups, legend_title) {
   subgroup_colors <- viridis::viridis(
-    length(subgroups), option = "plasma", end = 0.8
+    length(subgroups), option = colour_scheme, end = 0.8
   )
   color_vector <- c(subgroup_colors, "Overall" = "grey40")
   names(color_vector) <- c(subgroups, "Overall")
@@ -515,7 +525,6 @@ plot_emmeans_subgroup <- function(
   emm_overall = NULL,
   by,
   legend_title = NULL,
-  main_text_size = 14,
   alpha = 1,
   color_scale = NULL,
   shape = 16
@@ -541,15 +550,15 @@ plot_emmeans_subgroup <- function(
   pd <- position_dodge(width = 0.3)
 
   p <- ggplot(plot_data, aes(x = treatment, y = emmean, color = legend_label, group = legend_label)) +
-    geom_point(position = pd, size = 3, alpha = alpha, shape = shape) +
+    geom_point(position = pd, size = point_size, alpha = alpha, shape = shape) +
     geom_errorbar(
       aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]]),
-      width = 0.2, position = pd, alpha = alpha
+      width = 0.2, linewidth = errorbar_linewidth, position = pd, alpha = alpha
     ) +
-    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = 0.3) +
+    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = hline_linewidth) +
     coord_cartesian(ylim = c(0.5, 4.5)) +
     labs(y = "Marginal means", x = NULL) +
-    theme_main(main_text_size)
+    theme_main()
 
   if (!is.null(color_scale)) p <- p + color_scale
   return(p)
@@ -562,7 +571,6 @@ plot_contrasts_subgroup <- function(
   contr_overall = NULL,
   by,
   legend_title = "Group",
-  main_text_size = 14,
   alpha = 1,
   color_scale = NULL,
   shape = 16
@@ -595,16 +603,17 @@ plot_contrasts_subgroup <- function(
     aes(x = contrast, y = estimate,
         color = legend_label, group = legend_label)
   ) +
-    geom_point(position = position_dodge(0.3), size = 3,
+    geom_point(position = position_dodge(0.3), size = point_size,
                alpha = alpha, shape = shape) +
     geom_errorbar(
       aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-      width = 0.2, position = position_dodge(0.3), alpha = alpha
+      width = 0.2, linewidth = errorbar_linewidth,
+      position = position_dodge(0.3), alpha = alpha
     ) +
-    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3) +
+    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = hline_linewidth) +
     labs(y = "Contrast with control", x = NULL) +
     ylim(-1.65, 1.5) +
-    theme_main(main_text_size)
+    theme_main()
 
   if (!is.null(color_scale)) p <- p + color_scale
   return(p)
@@ -713,7 +722,7 @@ colour_assign_order <- c(
   "Leisure flier", "Business flier"
 )
 combined_pal <- setNames(
-  viridis::viridis(5, option = "plasma", end = 0.85),
+  viridis::viridis(5, option = colour_scheme, end = 0.85),
   colour_assign_order
 )
 
@@ -784,12 +793,12 @@ make_contr_panel <- function(
   ggplot(d, aes(x = contrast, y = estimate,
                 colour = group_label, group = group_label)) +
     geom_hline(
-      yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3
+      yintercept = 0, linetype = 2, colour = "gray40", linewidth = hline_linewidth
     ) +
-    geom_point(position = pd_comb, size = 3, shape = shape) +
+    geom_point(position = pd_comb, size = point_size, shape = shape) +
     geom_errorbar(
       aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-      width = 0.2, position = pd_comb
+      width = 0.2, linewidth = errorbar_linewidth, position = pd_comb
     ) +
     scale_colour_manual(
       values = label_pal, name = legend_title, drop = TRUE,

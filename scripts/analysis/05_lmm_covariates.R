@@ -17,14 +17,18 @@ library(patchwork)
 if (exists("snakemake")) {
   controls_file <- snakemake@input[["controls"]]
   fair_file     <- snakemake@input[["fair"]]
-  plot_out      <- snakemake@output[["covariates_plot"]]
+  plot_out        <- snakemake@output[["covariates_plot"]]
+  main_text_size  <- snakemake@config[["main_text_size"]]
+  hline_linewidth <- snakemake@config[["hline_linewidth"]]
+  line_linewidth  <- snakemake@config[["line_linewidth"]]
 } else {
-  controls_file <- here("data", "wtc_wtp_controls_tidy.csv")
-  fair_file     <- here("data", "wtc_wtp_fair_tidy.csv")
-  plot_out      <- here("output", "plot_covariates.png")
+  controls_file   <- here("data", "wtc_wtp_controls_tidy.csv")
+  fair_file       <- here("data", "wtc_wtp_fair_tidy.csv")
+  plot_out        <- here("output", "plot_covariates.png")
+  main_text_size  <- 14
+  hline_linewidth <- 0.3
+  line_linewidth  <- 1
 }
-
-main_text_size <- 14
 
 data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
   filter(!is.na(wtc)) |>
@@ -120,7 +124,6 @@ plot_covariate_effects <- function(
   covariates,
   x_labels = NULL,
   response_label = "Predicted response",
-  main_text_size = 14,
   title = NULL
 ) {
   plots <- lapply(seq_along(covariates), function(i) {
@@ -133,9 +136,9 @@ plot_covariate_effects <- function(
     }
     y_lab <- if (i == 1) response_label else NULL
     p <- ggplot(preds, aes(x = x, y = predicted)) +
-      geom_line(colour = "#3B4CC0") +
+      geom_line(colour = "#3B4CC0", linewidth = line_linewidth) +
       geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "#AAB0FF") +
-      geom_hline(yintercept = 2.5, linetype = "dashed") +
+      geom_hline(yintercept = 2.5, linetype = "dashed", linewidth = hline_linewidth) +
       theme_classic() +
       labs(x = x_lab, y = y_lab) +
       scale_x_continuous(

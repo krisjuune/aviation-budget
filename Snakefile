@@ -1,3 +1,5 @@
+configfile: "config.yaml"
+
 # data
 RAW_US              = "raw-data/Aviation_Justice_US_111224_1531.csv"
 RAW_CH              = "raw-data/Aviation_Justice_CH_111224_1531.csv"
@@ -85,6 +87,9 @@ PLOT_FLIER_EMM_CONTR   = "output/plot_flier_emm_contr.png"
 PLOT_CLIM_EMM_CONTR    = "output/plot_clim_emm_contr.png"
 PLOT_PURPOSE_EMM_CONTR = "output/plot_purpose_emm_contr.png"
 PLOT_CONTR_COMBINED    = "output/plot_contr_flier_purpose.png"
+SAMPLE_EXPLORATION     = "output/sample/sample_exploration.html"
+
+HTML_OUTPUTS = [SAMPLE_EXPLORATION] if config.get("html_reports", False) else []
 
 
 rule all:
@@ -163,7 +168,8 @@ rule all:
         PLOT_BIVAR_AGE_CLIM,
         PLOT_FLYING_PURPOSE,
         PLOT_CORR_POOLED,
-        PLOT_CORR_BY_COUNTRY
+        PLOT_CORR_BY_COUNTRY,
+        HTML_OUTPUTS
 
 # ----------------------------
 # Preprocess data
@@ -356,6 +362,18 @@ rule robustness_checks:
         rob_tables             = ROB_TABLES
     script:
         "scripts/analysis/07_robustness_checks.R"
+
+rule sample_exploration_html:
+    input:
+        controls = WTC_WTP_CTRL_DATA,
+        fair     = WTC_WTP_FAIR_DATA,
+        us       = CLEAN_US,
+        ch       = CLEAN_CH,
+        cn       = CLEAN_CN
+    output:
+        html = SAMPLE_EXPLORATION
+    script:
+        "scripts/analysis/03_sample_exploration.Rmd"
 
 rule sample_exploration:
     input:

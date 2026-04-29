@@ -1,0 +1,499 @@
+---
+title: "Sample Exploration"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 12, fig.height = 5)
+```
+
+```{r libraries}
+library(tidyverse)
+library(here)
+library(patchwork)
+library(ggridges)
+```
+
+```{r paths}
+if (exists("snakemake")) {
+  controls_file <- snakemake@input[["controls"]]
+  fair_file     <- snakemake@input[["fair"]]
+  clean_us      <- snakemake@input[["us"]]
+  clean_ch      <- snakemake@input[["ch"]]
+  clean_cn       <- snakemake@input[["cn"]]
+  main_text_size <- snakemake@config[["main_text_size"]]
+  point_size     <- snakemake@config[["point_size"]]
+  line_linewidth <- snakemake@config[["line_linewidth"]]
+  colour_scheme  <- snakemake@config[["colour_scheme"]]
+} else {
+  controls_file <- here("data", "wtc_wtp_controls_tidy.csv")
+  fair_file     <- here("data", "wtc_wtp_fair_tidy.csv")
+  clean_us      <- here("data", "data_clean_us.csv")
+  clean_ch      <- here("data", "data_clean_ch.csv")
+  clean_cn      <- here("data", "data_clean_cn.csv")
+  main_text_size <- 14
+  point_size     <- 3
+  line_linewidth <- 1
+  colour_scheme  <- "plasma"
+}
+```
+
+```{r load-data}
+edu_num_map <- c(
+  no_high_school = 1L, no_matura = 1L,
+  high_school    = 2L, matura    = 2L,
+  bachelor       = 3L, postgrad  = 4L
+)
+
+edu_label_map <- c(
+  no_high_school = "Below high school", no_matura = "Below high school",
+  high_school    = "High school",       matura    = "High school",
+  bachelor       = "Bachelor",          postgrad  = "Postgraduate"
+)
+
+edu_levels <- c("Below high school", "High school", "Bachelor", "Postgraduate")
+
+age_levels <- c("18y_24y", "25y_34y", "35y_44y", "45y_54y", "55y_64y", "65y_above")
+age_labels <- c(
+  "18y_24y" = "18–24", "25y_34y" = "25–34", "35y_44y" = "35–44",
+  "45y_54y" = "45–54", "55y_64y" = "55–64", "65y_above" = "65+"
+)
+
+df_clean <- bind_rows(
+  read_csv(clean_us, show_col_types = FALSE) |> mutate(country = "us"),
+  read_csv(clean_ch, show_col_types = FALSE) |> mutate(country = "ch"),
+  read_csv(clean_cn, show_col_types = FALSE) |> mutate(country = "cn")
+) |>
+  select(id, age, education) |>
+  mutate(
+    education_num   = edu_num_map[education],
+    education_label = factor(edu_label_map[education], levels = edu_levels),
+    age_num         = as.integer(factor(age, levels = age_levels)),
+    age             = factor(age, levels = age_levels)
+  )
+
+data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
+  filter(!is.na(wtc), time == "pre") |>
+  mutate(
+    income_decile        = as.integer(income_decile),
+    flying_recent_number = replace_na(flying_recent_number, 0),
+    country_label        = recode(country, "ch" = "Switzerland", "cn" = "China", "us" = "United States")
+  )
+
+data_fair <- read_csv(fair_file, show_col_types = FALSE) |>
+  filter(time == "pre") |>
+  mutate(
+    treatment        = factor(treatment) |> fct_relevel("control"),
+    treatment_label  = recode(
+      treatment,
+      "control" = "Control",       "egal"  = "Egalitarianism",
+      "limit"   = "Limitarianism", "prior" = "Prioritarianism",
+      "prop"    = "Proportionalism"
+    )
+  )
+
+df <- data_controls |>
+  left_join(df_clean, by = "id") |>
+  left_join(
+    data_fair |> select(id, fair_self_wtc, fair_group_wtc, fair_self_wtp, fair_group_wtp),
+    by = "id"
+  )
+
+p95_flights <- quantile(df$flying_recent_number, 0.95, na.rm = TRUE)
+```
+
+## Distributions
+
+### Income decile
+
+```{r dist-income}
+ggplot(df |> filter(!is.na(income_decile)), aes(x = income_decile)) +
+  geom_bar(fill = "#4393C3", alpha = 0.85) +
+  facet_wrap(~country_label) +
+  scale_x_continuous(breaks = 1:10) +
+  labs(x = "Income decile", y = "Count", title = "Income decile distribution") +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+### Number of flights
+
+```{r dist-flights}
+df |>
+  mutate(flights_display = pmin(flying_recent_number, p95_flights)) |>
+  ggplot(aes(x = flights_display)) +
+  geom_histogram(binwidth = 1, fill = "#74ADD1", alpha = 0.85) +
+  facet_wrap(~country_label, scales = "free_y") +
+  labs(
+    x     = "Number of flights (last 12 months)",
+    y     = "Count",
+    title = "Number of flights distribution",
+    caption = paste0("Capped at 95th percentile (", p95_flights, " flights) for display")
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+### Climate concern sum score
+
+The sum score combines three items: climate concern for WTC, climate concern for WTP, and an EU-style climate concern item (range 0–15).
+
+```{r dist-clim}
+ggplot(df |> filter(!is.na(clim_concern_score)), aes(x = clim_concern_score)) +
+  geom_histogram(binwidth = 1, fill = "#66C2A5", alpha = 0.85) +
+  facet_wrap(~country_label) +
+  scale_x_continuous(breaks = seq(0, 15, by = 3)) +
+  labs(
+    x     = "Climate concern sum score (0–15)",
+    y     = "Count",
+    title = "Climate concern sum score distribution"
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+### Education level
+
+Education levels are harmonised across countries: CH "matura"/"no matura" maps to "High school"/"Below high school".
+
+```{r dist-education}
+df |>
+  filter(!is.na(education_label)) |>
+  count(country_label, education_label) |>
+  group_by(country_label) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = education_label, y = pct)) +
+  geom_col(fill = "#FC8D59", alpha = 0.85) +
+  geom_text(aes(label = scales::percent(pct, accuracy = 1)), vjust = -0.3, size = 3.5) +
+  facet_wrap(~country_label) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    expand = expansion(mult = c(0, 0.12))
+  ) +
+  labs(x = "Education level", y = "Share", title = "Education distribution") +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 20, hjust = 1)
+  )
+```
+
+### Age group
+
+```{r dist-age}
+df |>
+  filter(!is.na(age)) |>
+  count(country_label, age) |>
+  group_by(country_label) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = fct_recode(age, !!!age_labels), y = pct)) +
+  geom_col(fill = "#FDAE61", alpha = 0.85) +
+  geom_text(aes(label = scales::percent(pct, accuracy = 1)), vjust = -0.3, size = 3.5) +
+  facet_wrap(~country_label) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    expand = expansion(mult = c(0, 0.12))
+  ) +
+  labs(x = "Age group", y = "Share", title = "Age distribution") +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+## Fairness score distributions
+
+Fairness scores reflect respondents' perceptions of the specific fairness framing they were assigned to. Distributions are therefore shown by treatment arm rather than pooled.
+
+```{r dist-fairness, fig.height=6}
+data_fair |>
+  left_join(
+    data_controls |> select(id, country_label),
+    by = "id"
+  ) |>
+  pivot_longer(
+    cols      = c(fair_self_wtc, fair_group_wtc, fair_self_wtp, fair_group_wtp),
+    names_to  = "fairness_var",
+    values_to = "score"
+  ) |>
+  mutate(
+    fairness_label = recode(
+      fairness_var,
+      fair_self_wtc  = "Personal (WTC)",
+      fair_group_wtc = "Group (WTC)",
+      fair_self_wtp  = "Personal (WTP)",
+      fair_group_wtp = "Group (WTP)"
+    ),
+    fairness_label = factor(
+      fairness_label,
+      levels = c("Personal (WTC)", "Group (WTC)", "Personal (WTP)", "Group (WTP)")
+    )
+  ) |>
+  filter(!is.na(score)) |>
+  ggplot(aes(x = treatment_label, y = score, fill = treatment_label)) +
+  geom_violin(alpha = 0.65, draw_quantiles = c(0.25, 0.5, 0.75)) +
+  stat_summary(
+    fun = mean, geom = "point", shape = 18, size = point_size, colour = "black"
+  ) +
+  facet_wrap(~fairness_label, nrow = 1) +
+  scale_fill_viridis_d(option = colour_scheme, guide = "none") +
+  scale_y_continuous(breaks = 0:5) +
+  labs(
+    x     = "Treatment arm",
+    y     = "Fairness score (0–5)",
+    title = "Fairness score distributions by treatment arm",
+    caption = "Diamond marks the mean; horizontal lines inside violins are quartiles."
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 25, hjust = 1)
+  )
+```
+
+## Covariate correlations
+
+Spearman correlations are used throughout as the variables are ordinal or right-skewed. Fairness scores are included but note that they are treatment-specific: pooled correlations mix respondents from different arms, which may attenuate or distort relationships with demographic variables.
+
+```{r corr-setup}
+vars_corr <- c(
+  "income_decile",
+  "flying_recent_number",
+  "clim_concern_score",
+  "fair_self_wtc",
+  "fair_group_wtc",
+  "fair_self_wtp",
+  "fair_group_wtp",
+  "education_num",
+  "age_num"
+)
+
+var_labels_corr <- c(
+  income_decile        = "Income decile",
+  flying_recent_number = "Nr of flights",
+  clim_concern_score   = "Climate concern",
+  fair_self_wtc        = "Fairness self (WTC)",
+  fair_group_wtc       = "Fairness group (WTC)",
+  fair_self_wtp        = "Fairness self (WTP)",
+  fair_group_wtp       = "Fairness group (WTP)",
+  education_num        = "Education",
+  age_num              = "Age"
+)
+
+make_corr_heatmap <- function(data, title, label_size = 3.5) {
+  mat <- cor(data[, vars_corr], method = "spearman", use = "pairwise.complete.obs")
+  as.data.frame(mat) |>
+    rownames_to_column("var1") |>
+    pivot_longer(-var1, names_to = "var2", values_to = "r") |>
+    mutate(
+      label1 = factor(var_labels_corr[var1], levels = var_labels_corr),
+      label2 = factor(var_labels_corr[var2], levels = rev(var_labels_corr))
+    ) |>
+    ggplot(aes(x = label1, y = label2, fill = r)) +
+    geom_tile(colour = "white", linewidth = 0.4) +
+    geom_text(
+      aes(label = sprintf("%.2f", r), colour = abs(r) > 0.45),
+      size = label_size
+    ) +
+    scale_fill_gradient2(
+      low = "#4393C3", mid = "white", high = "#D6604D",
+      midpoint = 0, limits = c(-1, 1), name = "Spearman ρ"
+    ) +
+    scale_colour_manual(values = c("TRUE" = "white", "FALSE" = "grey20"), guide = "none") +
+    labs(x = NULL, y = NULL, title = title) +
+    theme_classic() +
+    theme(
+      text = element_text(size = main_text_size),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid = element_blank()
+    )
+}
+```
+
+### Pooled
+
+```{r corr-pooled, fig.width=9, fig.height=7}
+make_corr_heatmap(df, "Spearman correlation matrix (pooled)")
+```
+
+### By country
+
+```{r corr-by-country, fig.width=18, fig.height=7}
+df |>
+  group_by(country_label) |>
+  group_modify(~ {
+    mat <- cor(.x[, vars_corr], method = "spearman", use = "pairwise.complete.obs")
+    as.data.frame(mat) |>
+      rownames_to_column("var1") |>
+      pivot_longer(-var1, names_to = "var2", values_to = "r")
+  }) |>
+  ungroup() |>
+  mutate(
+    label1 = factor(var_labels_corr[var1], levels = var_labels_corr),
+    label2 = factor(var_labels_corr[var2], levels = rev(var_labels_corr))
+  ) |>
+  ggplot(aes(x = label1, y = label2, fill = r)) +
+  geom_tile(colour = "white", linewidth = 0.4) +
+  geom_text(
+    aes(label = sprintf("%.2f", r), colour = abs(r) > 0.45),
+    size = 2.8
+  ) +
+  scale_fill_gradient2(
+    low = "#4393C3", mid = "white", high = "#D6604D",
+    midpoint = 0, limits = c(-1, 1), name = "Spearman ρ"
+  ) +
+  scale_colour_manual(values = c("TRUE" = "white", "FALSE" = "grey20"), guide = "none") +
+  facet_wrap(~country_label) +
+  labs(x = NULL, y = NULL, title = "Spearman correlation matrix by country") +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank(),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+## Key bivariate relationships
+
+### Income decile × number of flights
+
+```{r bivar-income-flights, fig.height=7}
+df |>
+  filter(!is.na(income_decile)) |>
+  mutate(flights_display = pmin(flying_recent_number, p95_flights)) |>
+  ggplot(aes(x = flights_display, y = factor(income_decile), fill = factor(income_decile))) +
+  geom_density_ridges(alpha = 0.6, scale = 0.9) +
+  facet_wrap(~country_label, nrow = 1) +
+  scale_fill_viridis_d(option = colour_scheme, guide = "none") +
+  labs(
+    x     = "Number of flights (last 12 months)",
+    y     = "Income decile",
+    title = "Flight frequency by income decile"
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+### Income decile × climate concern
+
+```{r bivar-income-clim}
+df |>
+  filter(!is.na(income_decile), !is.na(clim_concern_score)) |>
+  ggplot(aes(x = factor(income_decile), y = clim_concern_score)) +
+  geom_violin(fill = "#66C2A5", alpha = 0.65, draw_quantiles = c(0.25, 0.5, 0.75)) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = point_size) +
+  facet_wrap(~country_label, nrow = 1) +
+  labs(
+    x       = "Income decile",
+    y       = "Climate concern sum score",
+    title   = "Climate concern by income decile",
+    caption = "Diamond marks the mean; lines inside violins are quartiles."
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+### Number of flights × climate concern
+
+```{r bivar-flights-clim}
+df |>
+  filter(!is.na(clim_concern_score)) |>
+  mutate(flights_display = pmin(flying_recent_number, p95_flights)) |>
+  ggplot(aes(x = flights_display, y = clim_concern_score)) +
+  geom_point(alpha = 0.12, size = 1) +
+  geom_smooth(
+    method = "lm", colour = "#D6604D", fill = "#F4A582", linewidth = line_linewidth
+  ) +
+  facet_wrap(~country_label, nrow = 1) +
+  labs(
+    x     = "Number of flights (last 12 months)",
+    y     = "Climate concern sum score",
+    title = "Climate concern by number of flights"
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+### Education × income decile
+
+```{r bivar-educ-income}
+df |>
+  filter(!is.na(education_label), !is.na(income_decile)) |>
+  ggplot(aes(x = education_label, y = income_decile)) +
+  geom_violin(fill = "#FC8D59", alpha = 0.65, draw_quantiles = c(0.25, 0.5, 0.75)) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = point_size) +
+  facet_wrap(~country_label, nrow = 1) +
+  scale_y_continuous(breaks = 1:10) +
+  labs(
+    x     = "Education level",
+    y     = "Income decile",
+    title = "Income by education level"
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 20, hjust = 1)
+  )
+```
+
+### Age × climate concern
+
+```{r bivar-age-clim}
+df |>
+  filter(!is.na(age), !is.na(clim_concern_score)) |>
+  ggplot(aes(x = fct_recode(age, !!!age_labels), y = clim_concern_score)) +
+  geom_violin(fill = "#FDAE61", alpha = 0.65, draw_quantiles = c(0.25, 0.5, 0.75)) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = point_size) +
+  facet_wrap(~country_label, nrow = 1) +
+  labs(
+    x     = "Age group",
+    y     = "Climate concern sum score",
+    title = "Climate concern by age group"
+  ) +
+  theme_classic() +
+  theme(
+    text = element_text(size = main_text_size),
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+```
