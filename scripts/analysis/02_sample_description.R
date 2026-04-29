@@ -16,8 +16,10 @@ if (exists("snakemake")) {
   clean_ch       <- here("data", "data_clean_ch.csv")
   clean_cn       <- here("data", "data_clean_cn.csv")
   controls_file  <- here("data", "wtc_wtp_controls_tidy.csv")
-  summary_out    <- here("output", "sample_summary.txt")
+  summary_out    <- here("output", "sample", "sample_summary.txt")
 }
+
+dir.create(dirname(summary_out), showWarnings = FALSE, recursive = TRUE)
 
 df_us <- read_csv(clean_us, show_col_types = FALSE) |> mutate(country = "us")
 df_ch <- read_csv(clean_ch, show_col_types = FALSE) |> mutate(country = "ch")
