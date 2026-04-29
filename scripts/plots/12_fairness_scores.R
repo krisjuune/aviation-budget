@@ -110,7 +110,7 @@ plot_fairness <- function(data, self_var, group_var) {
     )
 
   p <- ggplot(fairness_prop, aes(x = treatment, y = prop, fill = score)) +
-    geom_col(alpha = 0.6) +
+    geom_col(alpha = 0.75) +
     geom_text(
       aes(label = ifelse(prop > 0.05, percent(prop, accuracy = 1), "")),
       position = position_stack(vjust = 0.5),
@@ -120,7 +120,7 @@ plot_fairness <- function(data, self_var, group_var) {
     coord_flip() +
     scale_fill_viridis_d(
       option = "plasma",
-      begin = 0.1,
+      begin = 0,
       end = 1,
       labels = likert_labels,
       name = "Fairness score"

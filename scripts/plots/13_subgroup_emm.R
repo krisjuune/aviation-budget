@@ -707,103 +707,120 @@ plot_purpose_emm_contr <-
 
 ############ combined flier × purpose contrast plot #################
 
-outcome_levels <- c(
-  "Willingness to pay (WTP)", "Willingness to change (WTC)"
+# Colour assignment: Non-flier first = dark blue end of plasma scale
+colour_assign_order <- c(
+  "Non-flier", "Average flier", "Frequent flier",
+  "Leisure flier", "Business flier"
+)
+combined_pal <- setNames(
+  viridis::viridis(5, option = "plasma", end = 0.85),
+  colour_assign_order
 )
 
-contr_flier_long <- bind_rows(
-  contr_wtp_flier |> mutate(outcome = "Willingness to pay (WTP)"),
-  contr_wtc_flier |> mutate(outcome = "Willingness to change (WTC)")
+# Legend display order: Non-flier last in both columns
+combined_group_levels <- c(
+  "Frequent flier", "Average flier",
+  "Business flier", "Leisure flier",
+  "Non-flier"
+)
+
+moderator_levels <- c("Flying behaviour", "Flying purpose")
+
+contr_wtp_combined <- bind_rows(
+  contr_wtp_flier |>
+    mutate(moderator = "Flying behaviour", group = as.character(flying_group)),
+  contr_wtp_purpose |>
+    mutate(moderator = "Flying purpose", group = as.character(purpose_group))
 ) |>
-  mutate(outcome = factor(outcome, levels = outcome_levels))
+  mutate(
+    group    = factor(group, levels = combined_group_levels),
+    moderator = factor(moderator, levels = moderator_levels)
+  )
 
-contr_purpose_long <- bind_rows(
-  contr_wtp_purpose |> mutate(outcome = "Willingness to pay (WTP)"),
-  contr_wtc_purpose |> mutate(outcome = "Willingness to change (WTC)")
+contr_wtc_combined <- bind_rows(
+  contr_wtc_flier |>
+    mutate(moderator = "Flying behaviour", group = as.character(flying_group)),
+  contr_wtc_purpose |>
+    mutate(moderator = "Flying purpose", group = as.character(purpose_group))
 ) |>
-  mutate(outcome = factor(outcome, levels = outcome_levels))
+  mutate(
+    group    = factor(group, levels = combined_group_levels),
+    moderator = factor(moderator, levels = moderator_levels)
+  )
 
-flier_pal <- setNames(
-  viridis::viridis(3, option = "plasma", end = 0.8),
-  c("Non-flier", "Average flier", "Frequent flier")
-)
-purpose_pal <- setNames(
-  viridis::viridis(3, option = "plasma", end = 0.8),
-  c("Non-flier", "Leisure flier", "Business flier")
-)
+# Add n to group labels
+contr_wtp_combined <- contr_wtp_combined |>
+  mutate(group_label = paste0(group, " (n = ", n, ")"))
+
+contr_wtc_combined <- contr_wtc_combined |>
+  mutate(group_label = paste0(group, " (n = ", n, ")"))
+
+# Shared label → colour map; Non-flier gets same colour in both columns
+label_pal <- bind_rows(contr_wtp_combined, contr_wtc_combined) |>
+  distinct(group, group_label) |>
+  mutate(colour = combined_pal[as.character(group)]) |>
+  select(group_label, colour) |>
+  deframe()
 
 theme_combined <- function() {
   theme_main() +
     theme(
       strip.background = element_blank(),
-      strip.text       = element_text(face = "bold"),
-      legend.position  = "bottom"
+      strip.text       = element_text(face = "bold")
     )
 }
 
 pd_comb <- position_dodge(0.3)
 
-# Solid shapes for flying behaviour, hollow for flying purpose
-flier_shapes <- c(
-  "Willingness to pay (WTP)"    = 16,
-  "Willingness to change (WTC)" = 17
-)
-purpose_shapes <- c(
-  "Willingness to pay (WTP)"    = 1,
-  "Willingness to change (WTC)" = 2
-)
+title_wtp_comb <- "A. Effect of surcharge designs on willingness to pay"
+title_wtc_comb <- "B. Effect of budget designs on willingness to change"
 
-plot_contr_flier_faceted <- ggplot(
-  contr_flier_long,
-  aes(x = contrast, y = estimate,
-      colour = flying_group, group = flying_group,
-      shape = outcome)
-) +
-  geom_point(position = pd_comb, size = 3) +
-  geom_errorbar(
-    aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-    width = 0.2, position = pd_comb
-  ) +
-  geom_hline(
-    yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3
-  ) +
-  facet_wrap(~outcome, ncol = 1, scales = "free_x") +
-  scale_colour_manual(values = flier_pal, name = "Flying behaviour") +
-  scale_shape_manual(values = flier_shapes, guide = "none") +
-  ylim(-1.65, 1.5) +
-  labs(
-    title = "A. Flying behaviour", x = NULL, y = "Contrast with control"
-  ) +
-  theme_combined()
+make_contr_panel <- function(
+  data, moderator_name, title, shape, legend_title, show_legend
+) {
+  d <- data |>
+    filter(moderator == moderator_name) |>
+    mutate(group_label = fct_reorder(group_label, as.integer(group)))
+  ggplot(d, aes(x = contrast, y = estimate,
+                colour = group_label, group = group_label)) +
+    geom_hline(
+      yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3
+    ) +
+    geom_point(position = pd_comb, size = 3, shape = shape) +
+    geom_errorbar(
+      aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
+      width = 0.2, position = pd_comb
+    ) +
+    scale_colour_manual(
+      values = label_pal, name = legend_title, drop = TRUE,
+      guide = guide_legend(override.aes = list(shape = 16))
+    ) +
+    coord_cartesian(ylim = c(-1.65, 1.5)) +
+    labs(title = title, x = NULL, y = "Contrast with control") +
+    theme_combined() +
+    theme(legend.position = if (show_legend) "bottom" else "none")
+}
 
-plot_contr_purpose_faceted <- ggplot(
-  contr_purpose_long,
-  aes(x = contrast, y = estimate,
-      colour = purpose_group, group = purpose_group,
-      shape = outcome)
-) +
-  geom_point(position = pd_comb, size = 3) +
-  geom_errorbar(
-    aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-    width = 0.2, position = pd_comb
+plot_contr_combined <- (
+    make_contr_panel(
+      contr_wtp_combined, "Flying behaviour",
+      title_wtp_comb, 16, "Flying behaviour", FALSE
+    ) |
+    make_contr_panel(
+      contr_wtp_combined, "Flying purpose",
+      NULL, 16, "Flying purpose", FALSE
+    )
+  ) / (
+    make_contr_panel(
+      contr_wtc_combined, "Flying behaviour",
+      title_wtc_comb, 17, "Flying behaviour", TRUE
+    ) |
+    make_contr_panel(
+      contr_wtc_combined, "Flying purpose",
+      NULL, 17, "Flying purpose", TRUE
+    )
   ) +
-  geom_hline(
-    yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3
-  ) +
-  facet_wrap(~outcome, ncol = 1, scales = "free_x") +
-  scale_colour_manual(values = purpose_pal, name = "Flying purpose") +
-  scale_shape_manual(values = purpose_shapes, guide = "none") +
-  ylim(-1.65, 1.5) +
-  labs(title = "B. Flying purpose", x = NULL, y = "Contrast with control") +
-  theme_combined() +
-  theme(
-    axis.title.y = element_blank(),
-    axis.text.y  = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.line.y  = element_blank()
-  )
-
-plot_contr_combined <- plot_contr_flier_faceted | plot_contr_purpose_faceted
+  plot_layout(axis_titles = "collect")
 
 ################### save #################
 

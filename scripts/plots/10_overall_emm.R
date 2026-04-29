@@ -92,39 +92,46 @@ contr_wtp <- read_csv(contr_wtp_file, show_col_types = FALSE) |>
       )
   )
 
+main_colour <- "#3B4CC0"
+
 ############# overall plots #################
 
 plot_emmeans_overall <- function(emm, title, shape = 16, main_text_size = 14) {
   ymin_col <- if ("asymp.LCL" %in% names(emm)) "asymp.LCL" else "lower.CL"
   ymax_col <- if ("asymp.UCL" %in% names(emm)) "asymp.UCL" else "upper.CL"
   ggplot(emm, aes(x = treatment, y = emmean, group = 1)) +
-    geom_point(size = 1.5, shape = shape) +
-    geom_errorbar(aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]]),
-                  width = 0.05) +
-    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = 0.3) +
-    coord_cartesian(ylim = c(0.5, 4.5)) +
+    geom_hline(yintercept = 2.5, linetype = 2, colour = "gray40", linewidth = 0.4) +
+    geom_errorbar(
+      aes(ymin = .data[[ymin_col]], ymax = .data[[ymax_col]]),
+      width = 0.08, linewidth = 0.7, colour = main_colour
+    ) +
+    geom_point(size = 2.5, shape = shape, colour = main_colour) +
+    coord_cartesian(ylim = c(1.4, 3.6)) +
     labs(title = title, y = "Marginal means", x = NULL) +
     theme_main(main_text_size)
 }
 
 plot_contrasts_overall <- function(contr, title, shape = 16, main_text_size = 14) {
   ggplot(contr, aes(x = contrast, y = estimate, group = 1)) +
-    geom_point(size = 1.5, shape = shape) +
-    geom_errorbar(aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
-                  width = 0.05) +
-    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.3) +
-    ylim(-1.65, 1.5) +
+    geom_hline(yintercept = 0, linetype = 2, colour = "gray40", linewidth = 0.4) +
+    geom_errorbar(
+      aes(ymin = estimate - 1.96 * SE, ymax = estimate + 1.96 * SE),
+      width = 0.08, linewidth = 0.7, colour = main_colour
+    ) +
+    geom_point(size = 2.5, shape = shape, colour = main_colour) +
+    coord_cartesian(ylim = c(-1, 1)) +
     labs(title = title, y = "Contrast with control", x = NULL) +
     theme_main(main_text_size)
 }
 
+title_wtp <- "A. Effect of surcharge designs on willingness to pay"
+title_wtc <- "B. Effect of budget designs on willingness to change"
+
 plot_overall <- (
-  plot_emmeans_overall(emm_wtp, "A. Effect of surcharge designs on willingness to pay",
-                       shape = 16) |
+  plot_emmeans_overall(emm_wtp, title_wtp, shape = 16) |
   plot_contrasts_overall(contr_wtp, title = NULL, shape = 16)
 ) / (
-  plot_emmeans_overall(emm_wtc, "B. Effect of budget designs on willingness to change",
-                       shape = 17) |
+  plot_emmeans_overall(emm_wtc, title_wtc, shape = 17) |
   plot_contrasts_overall(contr_wtc, title = NULL, shape = 17)
 ) +
   plot_layout(axis_titles = "collect")
