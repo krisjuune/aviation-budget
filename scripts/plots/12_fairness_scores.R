@@ -11,11 +11,9 @@ library(patchwork)
 if (exists("snakemake")) {
   fair_file    <- snakemake@input[["fair"]]
   plot_out     <- snakemake@output[["fairness_plot"]]
-  report_out   <- snakemake@output[["fairness_report"]]
 } else {
   fair_file    <- here("data", "wtc_wtp_fair_tidy.csv")
   plot_out     <- here("output", "fairness_scores.png")
-  report_out   <- here("output", "fairness_means.txt")
 }
 
 data_fair <- read_csv(fair_file, show_col_types = FALSE)
@@ -160,44 +158,3 @@ fairness_scores <- fairness_wtp / fairness_wtc +
   theme(legend.position = "bottom")
 
 ggsave(plot = fairness_scores, plot_out, height = 6, width = 14)
-
-################ mean scores #############
-
-summarise_fairness_means <- function(data, self_var, group_var) {
-  data |>
-    filter(time == "post", treatment != "Control") |>
-    summarise(
-      personal_mean = mean({{self_var}}, na.rm = TRUE),
-      group_mean    = mean({{group_var}}, na.rm = TRUE),
-      .by = treatment
-    ) |>
-    mutate(
-      personal_mean = round(personal_mean, 2),
-      group_mean    = round(group_mean, 2)
-    )
-}
-
-write_fairness_report <- function(wtp_summary, wtc_summary, path) {
-  lines <- c("Personal and group fairness mean scores", "", "Aviation tax")
-  for (i in seq_len(nrow(wtp_summary))) {
-    lines <- c(lines, paste0(
-      tolower(wtp_summary$treatment[i]), ": personal ",
-      wtp_summary$personal_mean[i], " & group ",
-      wtp_summary$group_mean[i]
-    ))
-  }
-  lines <- c(lines, "", "Aviation budget")
-  for (i in seq_len(nrow(wtc_summary))) {
-    lines <- c(lines, paste0(
-      tolower(wtc_summary$treatment[i]), ": personal ",
-      wtc_summary$personal_mean[i], " & group ",
-      wtc_summary$group_mean[i]
-    ))
-  }
-  writeLines(lines, path)
-}
-
-fairness_means_wtp <- summarise_fairness_means(data_fair_wtp, fair_self_wtp, fair_group_wtp)
-fairness_means_wtc <- summarise_fairness_means(data_fair_wtc, fair_self_wtc, fair_group_wtc)
-
-write_fairness_report(fairness_means_wtp, fairness_means_wtc, report_out)
