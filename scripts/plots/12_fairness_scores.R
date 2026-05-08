@@ -12,12 +12,14 @@ if (exists("snakemake")) {
   fair_file    <- snakemake@input[["fair"]]
   plot_out       <- snakemake@output[["fairness_plot"]]
   main_text_size <- snakemake@config[["main_text_size"]]
-  colour_scheme  <- snakemake@config[["colour_scheme"]]
+  main_colour    <- snakemake@config[["main_colour"]]
+  light_colour   <- snakemake@config[["light_colour"]]
 } else {
   fair_file      <- here("data", "wtc_wtp_fair_tidy.csv")
   plot_out       <- here("output", "fairness_scores.png")
   main_text_size <- 14
-  colour_scheme  <- "plasma"
+  main_colour    <- "#3B4CC0"
+  light_colour   <- "#AAB0FF"
 }
 
 data_fair <- read_csv(fair_file, show_col_types = FALSE)
@@ -49,10 +51,10 @@ data_fair_wtp <- data_fair |>
     treatment = factor(treatment) |>
       fct_recode(
         "Control"             = "control",
-        "Income-based tax"    = "egal",
-        "Frequent-flying tax" = "limit",
-        "Tourism tax"         = "prior",
-        "Flying tax"          = "prop"
+        "Income-based fee"    = "egal",
+        "Frequent-flying fee" = "limit",
+        "Tourism fee"         = "prior",
+        "Flying fee"          = "prop"
       )
   ) |>
   drop_na(fair_self_wtp, fair_group_wtp)
@@ -120,12 +122,10 @@ plot_fairness <- function(data, self_var, group_var) {
     ) +
     facet_wrap(~fairness_type, nrow = 1) +
     coord_flip() +
-    scale_fill_viridis_d(
-      option = colour_scheme,
-      begin = 0,
-      end = 1,
+    scale_fill_manual(
+      values = colorRampPalette(c(light_colour, main_colour))(6),
       labels = likert_labels,
-      name = "Fairness score"
+      name   = "Fairness score"
     ) +
     guides(fill = guide_legend(reverse = TRUE, nrow = 1)) +
     scale_y_continuous(labels = percent_format()) +
@@ -152,10 +152,10 @@ plot_fairness <- function(data, self_var, group_var) {
 }
 
 fairness_wtc <- plot_fairness(data_fair_wtc, fair_self_wtc, fair_group_wtc) +
-  labs(title = "B. Fairness scores for different aviation budget designs")
+  labs(title = "B. Fairness scores for flying budget designs")
 
 fairness_wtp <- plot_fairness(data_fair_wtp, fair_self_wtp, fair_group_wtp) +
-  labs(title = "A. Fairness scores for different aviation tax designs")
+  labs(title = "A. Fairness scores for flying surcharge designs")
 
 fairness_scores <- fairness_wtp / fairness_wtc +
   plot_layout(guides = "collect", axis_titles = "collect") &

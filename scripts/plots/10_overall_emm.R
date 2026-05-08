@@ -22,6 +22,7 @@ if (exists("snakemake")) {
   point_size         <- snakemake@config[["point_size"]]
   errorbar_linewidth <- snakemake@config[["errorbar_linewidth"]]
   hline_linewidth    <- snakemake@config[["hline_linewidth"]]
+  main_colour        <- snakemake@config[["main_colour"]]
 } else {
   emm_wtc_file       <- here("data", "emm_wtc.csv")
   emm_wtp_file       <- here("data", "emm_wtp.csv")
@@ -32,6 +33,7 @@ if (exists("snakemake")) {
   point_size         <- 3
   errorbar_linewidth <- 0.2
   hline_linewidth    <- 0.3
+  main_colour        <- "#3B4CC0"
 }
 
 standardize_emm_columns <- function(emm_df) {
@@ -99,8 +101,6 @@ contr_wtp <- read_csv(contr_wtp_file, show_col_types = FALSE) |>
         "Flying fee"          = "Proportionalism"
       )
   )
-
-main_colour <- "#3B4CC0"
 
 ############# overall plots #################
 

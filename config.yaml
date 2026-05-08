@@ -1,6 +1,8 @@
 html_reports: false
 
 # plot aesthetics
+main_colour: "#3B4CC0"
+light_colour: "#AAB0FF"
 main_text_size: 14
 point_size: 4.5
 errorbar_linewidth: 0.6

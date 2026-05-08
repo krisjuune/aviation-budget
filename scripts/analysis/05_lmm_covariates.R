@@ -21,6 +21,8 @@ if (exists("snakemake")) {
   main_text_size  <- snakemake@config[["main_text_size"]]
   hline_linewidth <- snakemake@config[["hline_linewidth"]]
   line_linewidth  <- snakemake@config[["line_linewidth"]]
+  main_colour     <- snakemake@config[["main_colour"]]
+  light_colour    <- snakemake@config[["light_colour"]]
 } else {
   controls_file   <- here("data", "wtc_wtp_controls_tidy.csv")
   fair_file       <- here("data", "wtc_wtp_fair_tidy.csv")
@@ -28,6 +30,8 @@ if (exists("snakemake")) {
   main_text_size  <- 14
   hline_linewidth <- 0.3
   line_linewidth  <- 1
+  main_colour     <- "#3B4CC0"
+  light_colour    <- "#AAB0FF"
 }
 
 data_controls <- read_csv(controls_file, show_col_types = FALSE) |>
@@ -136,8 +140,11 @@ plot_covariate_effects <- function(
     }
     y_lab <- if (i == 1) response_label else NULL
     p <- ggplot(preds, aes(x = x, y = predicted)) +
-      geom_line(colour = "#3B4CC0", linewidth = line_linewidth) +
-      geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "#AAB0FF") +
+      geom_line(colour = main_colour, linewidth = line_linewidth) +
+      geom_ribbon(
+        aes(ymin = conf.low, ymax = conf.high),
+        alpha = 0.2, fill = light_colour
+      ) +
       geom_hline(yintercept = 2.5, linetype = "dashed", linewidth = hline_linewidth) +
       theme_classic() +
       labs(x = x_lab, y = y_lab) +
