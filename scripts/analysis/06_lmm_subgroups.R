@@ -134,15 +134,15 @@ add_group_n <- function(emm_obj, data, by) {
 #################### income models ###############################
 
 model_wtc <- lmer(
-  wtc ~ treatment * income_group + (1 | country),
+  wtc ~ treatment * income_group + red_amt + (1 | country),
   data = data_controls
 )
 model_wtp <- lmer(
-  wtp ~ treatment * income_group + relative_added_cost + (1 | country),
+  wtp ~ treatment * income_group + red_amt + relative_added_cost + (1 | country),
   data = data_controls
 )
 model_flights <- lmer(
-  planned_flights ~ time * treatment * income_group + (1 | id) + (1 | country),
+  planned_flights ~ time * treatment * income_group + red_amt + (1 | id) + (1 | country),
   data = data_controls
 )
 
@@ -180,15 +180,15 @@ contr_wtp_income <- add_group_n(contr_wtp_income, data_controls, "income_group")
 #################### flying group models ###############################
 
 model_wtc <- lmer(
-  wtc ~ treatment * flying_group + (1 | country),
+  wtc ~ treatment * flying_group + red_amt + (1 | country),
   data = data_controls
 )
 model_wtp <- lmer(
-  wtp ~ treatment * flying_group + relative_added_cost + (1 | country),
+  wtp ~ treatment * flying_group + red_amt + relative_added_cost + (1 | country),
   data = data_controls
 )
 model_flights <- lmer(
-  planned_flights ~ time * treatment * flying_group + (1 | id) + (1 | country),
+  planned_flights ~ time * treatment * flying_group + red_amt + (1 | id) + (1 | country),
   data = data_controls
 )
 
@@ -226,15 +226,15 @@ contr_wtp_flier <- add_group_n(contr_wtp_flier, data_controls, "flying_group")
 #################### climate concern models ###############################
 
 model_wtc <- lmer(
-  wtc ~ treatment * clim_concern + (1 | country),
+  wtc ~ treatment * clim_concern + red_amt + (1 | country),
   data = data_controls
 )
 model_wtp <- lmer(
-  wtp ~ treatment * clim_concern + relative_added_cost + (1 | country),
+  wtp ~ treatment * clim_concern + red_amt + relative_added_cost + (1 | country),
   data = data_controls
 )
 model_flights <- lmer(
-  planned_flights ~ time * treatment * clim_concern + (1 | id) + (1 | country),
+  planned_flights ~ time * treatment * clim_concern + red_amt + (1 | id) + (1 | country),
   data = data_controls
 )
 
@@ -272,15 +272,15 @@ contr_wtp_clim <- add_group_n(contr_wtp_clim, data_controls, "clim_concern")
 #################### flying purpose models ###############################
 
 model_wtc <- lmer(
-  wtc ~ treatment * purpose_group + (1 | country),
+  wtc ~ treatment * purpose_group + red_amt + (1 | country),
   data = data_controls
 )
 model_wtp <- lmer(
-  wtp ~ treatment * purpose_group + relative_added_cost + (1 | country),
+  wtp ~ treatment * purpose_group + red_amt + relative_added_cost + (1 | country),
   data = data_controls
 )
 model_flights <- lmer(
-  planned_flights ~ time * treatment * purpose_group +
+  planned_flights ~ time * treatment * purpose_group + red_amt +
     (1 | id) + (1 | country),
   data = data_controls
 )
