@@ -33,6 +33,22 @@ likert_labels <- c(
   "5" = "Very fair"
 )
 
+# 6-colour gradient: main_colour at position 2, light_colour at position 5.
+# Extreme endpoints derived algebraically: a = (4*main - light) / 3,
+# d = (4*light - main) / 3, so that a 2-anchor colorRampPalette(a, d)(6)
+# places main and light exactly at positions 2 and 5.
+lik_colours <- local({
+  m    <- col2rgb(main_colour)[, 1]
+  l    <- col2rgb(light_colour)[, 1]
+  clip <- function(x) pmax(0L, pmin(255L, as.integer(round(x))))
+  a    <- clip((4 * m - l) / 3)
+  d    <- clip((4 * l - m) / 3)
+  colorRampPalette(c(
+    rgb(a[1], a[2], a[3], maxColorValue = 255),
+    rgb(d[1], d[2], d[3], maxColorValue = 255)
+  ))(6)
+})
+
 data_fair_wtc <- data_fair |>
   mutate(
     treatment = factor(treatment) |>
@@ -123,7 +139,7 @@ plot_fairness <- function(data, self_var, group_var) {
     facet_wrap(~fairness_type, nrow = 1) +
     coord_flip() +
     scale_fill_manual(
-      values = colorRampPalette(c(light_colour, main_colour))(6),
+      values = lik_colours,
       labels = likert_labels,
       name   = "Fairness score"
     ) +
