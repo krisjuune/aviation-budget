@@ -26,6 +26,9 @@ if (exists("snakemake")) {
   out_emm_wtp_speeders       <- snakemake@output[["emm_wtp_speeders"]]
   out_contr_wtc_speeders     <- snakemake@output[["contr_wtc_speeders"]]
   out_contr_wtp_speeders     <- snakemake@output[["contr_wtp_speeders"]]
+  out_contr_wtc_country      <- snakemake@output[["contr_wtc_country"]]
+  out_contr_wtp_country      <- snakemake@output[["contr_wtp_country"]]
+  out_lrt_country            <- snakemake@output[["lrt_country"]]
   out_rob_tables             <- snakemake@output[["rob_tables"]]
 } else {
   controls_file <- here("data", "wtc_wtp_controls_tidy.csv")
@@ -48,6 +51,9 @@ if (exists("snakemake")) {
   out_emm_wtp_speeders       <- here("data", "emm_wtp_rob_speeders.csv")
   out_contr_wtc_speeders     <- here("data", "contr_wtc_rob_speeders.csv")
   out_contr_wtp_speeders     <- here("data", "contr_wtp_rob_speeders.csv")
+  out_contr_wtc_country      <- here("data", "contr_wtc_country.csv")
+  out_contr_wtp_country      <- here("data", "contr_wtp_country.csv")
+  out_lrt_country            <- here("output", "lrt_country.txt")
   out_rob_tables             <- here("output", "robustness_tables.tex")
 }
 
@@ -217,6 +223,53 @@ data_speeders <- data_controls |>
   filter(is.na(duration) | duration > speeder_cutoff)
 results_speeders <- run_robustness(data_speeders)
 
+###################### country × treatment interaction ######################
+
+# country as fixed effect (no random intercept) so interaction is estimable
+model_wtc_main <- lm(
+  wtc ~ treatment + country + red_amt,
+  data = data_controls
+)
+model_wtc_inter <- lm(
+  wtc ~ treatment * country + red_amt,
+  data = data_controls
+)
+
+model_wtp_main <- lm(
+  wtp ~ treatment + country + red_amt + relative_added_cost,
+  data = data_controls
+)
+model_wtp_inter <- lm(
+  wtp ~ treatment * country + red_amt + relative_added_cost,
+  data = data_controls
+)
+
+lrt_wtc <- anova(model_wtc_main, model_wtc_inter)
+lrt_wtp <- anova(model_wtp_main, model_wtp_inter)
+
+lrt_lines <- c(
+  "=== WTC: F-test for treatment x country interaction ===",
+  capture.output(print(lrt_wtc)),
+  "",
+  "=== WTP: F-test for treatment x country interaction ===",
+  capture.output(print(lrt_wtp))
+)
+writeLines(lrt_lines, out_lrt_country)
+
+contr_wtc_country <- contrast(
+  emmeans(model_wtc_inter, ~ treatment | country),
+  method = "trt.vs.ctrl", ref = "Control"
+) |>
+  as.data.frame() |>
+  as_tibble()
+
+contr_wtp_country <- contrast(
+  emmeans(model_wtp_inter, ~ treatment | country),
+  method = "trt.vs.ctrl", ref = "Control"
+) |>
+  as.data.frame() |>
+  as_tibble()
+
 ###################### save csvs ######################
 
 write.csv(results_highincome$emm_wtc,     out_emm_wtc_highincome)
@@ -239,7 +292,115 @@ write.csv(results_speeders$emm_wtp,       out_emm_wtp_speeders)
 write.csv(results_speeders$contr_wtc,     out_contr_wtc_speeders)
 write.csv(results_speeders$contr_wtp,     out_contr_wtp_speeders)
 
+write.csv(contr_wtc_country, out_contr_wtc_country, row.names = FALSE)
+write.csv(contr_wtp_country, out_contr_wtp_country, row.names = FALSE)
+
 ###################### save latex tables ######################
+
+make_country_table <- function(contr_wtc, contr_wtp, caption, label) {
+  contr_order <- c(
+    "Egalitarianism - Control",
+    "Limitarianism - Control",
+    "Prioritarianism - Control",
+    "Proportionalism - Control"
+  )
+  contr_labels <- c(
+    "Egalitarianism - Control"  = "Egalitarianism",
+    "Limitarianism - Control"   = "Limitarianism",
+    "Prioritarianism - Control" = "Prioritarianism",
+    "Proportionalism - Control" = "Proportionalism"
+  )
+  country_display <- c(
+    "ch" = "Switzerland", "cn" = "China", "us" = "United States"
+  )
+  country_order <- c("Switzerland", "China", "United States")
+
+  prep <- function(df, outcome) {
+    df |>
+      filter(contrast %in% contr_order) |>
+      mutate(
+        country_name = case_match(
+          country,
+          "ch" ~ "Switzerland", "cn" ~ "China", "us" ~ "United States",
+          .default = as.character(country)
+        ),
+        cell    = fmt_cell(estimate, SE),
+        col_key = paste0(country_name, "_", outcome)
+      ) |>
+      select(contrast, col_key, cell)
+  }
+
+  wide <- bind_rows(prep(contr_wtc, "WTC"), prep(contr_wtp, "WTP")) |>
+    pivot_wider(names_from = col_key, values_from = cell, id_cols = contrast) |>
+    mutate(
+      contrast = factor(contrast, levels = contr_order),
+      row_label = contr_labels[as.character(contrast)]
+    ) |>
+    arrange(contrast)
+
+  # interleave WTC/WTP within each country: SW_WTC, SW_WTP, CN_WTC, ...
+  col_order <- c(rbind(
+    paste0(country_order, "_WTC"),
+    paste0(country_order, "_WTP")
+  ))
+  for (col in col_order) {
+    if (!col %in% names(wide)) wide[[col]] <- "--"
+  }
+
+  rows <- sapply(seq_len(nrow(wide)), function(i) {
+    cells <- sapply(col_order, function(col) wide[[col]][i])
+    paste0(wide$row_label[i], " & ", paste(cells, collapse = " & "), " \\\\")
+  })
+
+  col_headers_full <- paste0(
+    "\\textbf{Treatment}",
+    paste(
+      sapply(country_order, function(c) {
+        sprintf(" & \\multicolumn{2}{c}{%s}", c)
+      }),
+      collapse = ""
+    ),
+    " \\\\"
+  )
+  cmidrules <- paste(
+    sapply(seq_along(country_order), function(i) {
+      start <- 2 + (i - 1) * 2
+      sprintf("\\cmidrule(lr){%d-%d}", start, start + 1)
+    }),
+    collapse = " "
+  )
+  sub_headers <- paste0(
+    " & ", paste(rep("WTC & WTP", 3), collapse = " & "), " \\\\"
+  )
+
+  lines <- c(
+    "\\begin{table}[H]",
+    "\\centering",
+    "\\small",
+    "\\begin{tabular}{lcccccc}",
+    "\\toprule",
+    col_headers_full,
+    cmidrules,
+    sub_headers,
+    "\\midrule",
+    "",
+    "\\addlinespace",
+    "\\textbf{Contrasts vs.\\ control} \\\\",
+    rows,
+    "",
+    "\\bottomrule",
+    "\\end{tabular}",
+    paste0(
+      "\\caption{", caption,
+      " Estimates are treatment--control contrasts from linear models",
+      " with country as a fixed effect. Standard errors in parentheses.}"
+    ),
+    paste0("\\label{tab:", label, "}"),
+    "\\end{table}"
+  )
+
+  paste(lines, collapse = "\n")
+}
 
 table_highincome <- make_rob_table(
   full     = results_full,
@@ -278,6 +439,16 @@ table_speeders <- make_rob_table(
   label    = "rob-speeders"
 )
 
+table_country <- make_country_table(
+  contr_wtc = contr_wtc_country,
+  contr_wtp = contr_wtp_country,
+  caption   = paste0(
+    "Country-level treatment--control contrasts from a fixed-effects model",
+    " with treatment, country, and their interaction as predictors."
+  ),
+  label     = "country-interaction"
+)
+
 all_tables <- paste(
   c(
     "% Required LaTeX packages: \\usepackage{booktabs}, \\usepackage{float}",
@@ -288,7 +459,9 @@ all_tables <- paste(
     "",
     table_nonfliers_cn,
     "",
-    table_speeders
+    table_speeders,
+    "",
+    table_country
   ),
   collapse = "\n"
 )

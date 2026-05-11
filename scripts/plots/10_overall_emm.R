@@ -15,9 +15,12 @@ library(emmeans)
 if (exists("snakemake")) {
   emm_wtc_file  <- snakemake@input[["emm_wtc"]]
   emm_wtp_file  <- snakemake@input[["emm_wtp"]]
-  contr_wtc_file <- snakemake@input[["contr_wtc"]]
-  contr_wtp_file <- snakemake@input[["contr_wtp"]]
+  contr_wtc_file  <- snakemake@input[["contr_wtc"]]
+  contr_wtp_file  <- snakemake@input[["contr_wtp"]]
+  ranef_wtc_file  <- snakemake@input[["ranef_wtc"]]
+  ranef_wtp_file  <- snakemake@input[["ranef_wtp"]]
   plot_out           <- snakemake@output[["overall_plot"]]
+  country_plot_out   <- snakemake@output[["country_plot"]]
   main_text_size     <- snakemake@config[["main_text_size"]]
   point_size         <- snakemake@config[["point_size"]]
   errorbar_linewidth <- snakemake@config[["errorbar_linewidth"]]
@@ -28,7 +31,10 @@ if (exists("snakemake")) {
   emm_wtp_file       <- here("data", "emm_wtp.csv")
   contr_wtc_file     <- here("data", "contr_wtc.csv")
   contr_wtp_file     <- here("data", "contr_wtp.csv")
+  ranef_wtc_file     <- here("data", "ranef_wtc.csv")
+  ranef_wtp_file     <- here("data", "ranef_wtp.csv")
   plot_out           <- here("output", "plot_overall_results.png")
+  country_plot_out   <- here("output", "plot_country_intercepts.png")
   main_text_size     <- 14
   point_size         <- 3
   errorbar_linewidth <- 0.2
@@ -102,6 +108,9 @@ contr_wtp <- read_csv(contr_wtp_file, show_col_types = FALSE) |>
       )
   )
 
+ranef_wtc <- read_csv(ranef_wtc_file, show_col_types = FALSE)
+ranef_wtp <- read_csv(ranef_wtp_file, show_col_types = FALSE)
+
 ############# overall plots #################
 
 plot_emmeans_overall <- function(emm, title, shape = 16) {
@@ -145,3 +154,63 @@ plot_overall <- (
   plot_layout(axis_titles = "collect")
 
 ggsave(plot = plot_overall, plot_out, height = 8, width = 15)
+
+############# country intercepts plot #################
+
+ranef_combined <- bind_rows(
+  ranef_wtc |> mutate(response = "Willingness to change (WTC)"),
+  ranef_wtp |> mutate(response = "Willingness to pay (WTP)")
+) |>
+  mutate(
+    country = case_match(
+      country,
+      "ch" ~ "Switzerland",
+      "cn" ~ "China",
+      "us" ~ "United States"
+    ),
+    response = factor(
+      response,
+      levels = c("Willingness to pay (WTP)", "Willingness to change (WTC)")
+    )
+  )
+
+plot_country_intercepts <- ggplot(
+  ranef_combined,
+  aes(x = country, y = country_mean, shape = response)
+) +
+  geom_hline(
+    yintercept = 2.5, linetype = 2, colour = "gray40",
+    linewidth = hline_linewidth
+  ) +
+  geom_errorbar(
+    aes(
+      ymin = country_mean - 1.96 * condsd,
+      ymax = country_mean + 1.96 * condsd
+    ),
+    width = 0.08, linewidth = errorbar_linewidth, colour = main_colour
+  ) +
+  geom_point(size = point_size, colour = main_colour) +
+  scale_shape_manual(
+    values = c(
+      "Willingness to pay (WTP)"    = 16,
+      "Willingness to change (WTC)" = 17
+    ),
+    guide = "none"
+  ) +
+  coord_cartesian(ylim = c(1.5, 3.5)) +
+  facet_wrap(~response) +
+  labs(
+    x = NULL,
+    y = "Country mean for control group"
+  ) +
+  theme_main() +
+  theme(
+    strip.background = element_blank(),
+    strip.text = element_text(face = "bold")
+  )
+
+ggsave(
+  plot = plot_country_intercepts,
+  country_plot_out,
+  height = 5, width = 9
+)

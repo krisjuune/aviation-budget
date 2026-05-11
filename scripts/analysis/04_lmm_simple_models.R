@@ -21,6 +21,8 @@ if (exists("snakemake")) {
   out_emm_wtp_haul    <- snakemake@output[["emm_wtp_haul"]]
   out_contr_wtc       <- snakemake@output[["contr_wtc"]]
   out_contr_wtp       <- snakemake@output[["contr_wtp"]]
+  out_ranef_wtc       <- snakemake@output[["ranef_wtc"]]
+  out_ranef_wtp       <- snakemake@output[["ranef_wtp"]]
   out_assumptions_wtc <- snakemake@output[["assumptions_wtc"]]
   out_assumptions_wtp <- snakemake@output[["assumptions_wtp"]]
   main_text_size     <- snakemake@config[["main_text_size"]]
@@ -37,6 +39,8 @@ if (exists("snakemake")) {
   out_emm_wtp_haul    <- here("data", "emm_wtp_haul.csv")
   out_contr_wtc       <- here("data", "contr_wtc.csv")
   out_contr_wtp       <- here("data", "contr_wtp.csv")
+  out_ranef_wtc       <- here("data", "ranef_wtc.csv")
+  out_ranef_wtp       <- here("data", "ranef_wtp.csv")
   out_assumptions_wtc <- here("output", "assumptions_wtc.png")
   out_assumptions_wtp <- here("output", "assumptions_wtp.png")
   main_text_size      <- 14
@@ -146,6 +150,19 @@ write.csv(emm_wtp_redamt, out_emm_wtp_redamt)
 write.csv(emm_wtp_haul,   out_emm_wtp_haul)
 write.csv(contrast_wtc,   out_contr_wtc)
 write.csv(contrast_wtp,   out_contr_wtp)
+
+ranef_wtc <- as.data.frame(ranef(model_wtc, condVar = TRUE)) |>
+  filter(term == "(Intercept)") |>
+  select(country = grp, condval, condsd) |>
+  mutate(country_mean = fixef(model_wtc)[["(Intercept)"]] + condval)
+
+ranef_wtp <- as.data.frame(ranef(model_wtp, condVar = TRUE)) |>
+  filter(term == "(Intercept)") |>
+  select(country = grp, condval, condsd) |>
+  mutate(country_mean = fixef(model_wtp)[["(Intercept)"]] + condval)
+
+write.csv(ranef_wtc, out_ranef_wtc, row.names = FALSE)
+write.csv(ranef_wtp, out_ranef_wtp, row.names = FALSE)
 
 #################### assumptions #######################
 
