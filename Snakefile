@@ -29,6 +29,9 @@ ROB_EMM_WTP_SPEEDERS       = "data/emm_wtp_rob_speeders.csv"
 ROB_CONTR_WTC_SPEEDERS     = "data/contr_wtc_rob_speeders.csv"
 ROB_CONTR_WTP_SPEEDERS     = "data/contr_wtp_rob_speeders.csv"
 ROB_TABLES                 = "output/robustness_tables.tex"
+CONTR_WTC_COUNTRY          = "data/contr_wtc_country.csv"
+CONTR_WTP_COUNTRY          = "data/contr_wtp_country.csv"
+LRT_COUNTRY                = "output/lrt_country.txt"
 
 # data outputs
 EMM_WTC               = "data/emm_wtc.csv"
@@ -38,6 +41,8 @@ EMM_WTP_REDAMT        = "data/emm_wtp_redamt.csv"
 EMM_WTP_HAUL          = "data/emm_wtp_haul.csv"
 CONTR_WTC             = "data/contr_wtc.csv"
 CONTR_WTP             = "data/contr_wtp.csv"
+RANEF_WTC             = "data/ranef_wtc.csv"
+RANEF_WTP             = "data/ranef_wtp.csv"
 EMM_WTC_INCOME        = "data/emm_wtc_income.csv"
 EMM_WTP_INCOME        = "data/emm_wtp_income.csv"
 CONTR_WTC_INCOME      = "data/contr_wtc_income.csv"
@@ -80,6 +85,7 @@ ASSUMPTIONS_WTC       = "output/assumptions_wtc.png"
 ASSUMPTIONS_WTP       = "output/assumptions_wtp.png"
 COVARIATES_PLOT       = "output/plot_covariates.png"
 OVERALL_PLOT          = "output/plot_overall_results.png"
+COUNTRY_PLOT          = "output/plot_country_intercepts.png"
 PLOT_INCOME_FLYING    = "output/plot_income_flying.png"
 FAIRNESS_PLOT         = "output/fairness_scores.png"
 PLOT_INCOME_EMM_CONTR  = "output/plot_income_emm_contr.png"
@@ -108,6 +114,8 @@ rule all:
         EMM_WTP_HAUL,
         CONTR_WTC,
         CONTR_WTP,
+        RANEF_WTC,
+        RANEF_WTP,
         ASSUMPTIONS_WTC,
         ASSUMPTIONS_WTP,
         COVARIATES_PLOT,
@@ -132,6 +140,7 @@ rule all:
         CONTR_WTP_PURPOSE,
         CONTR_FLIGHTS_PURPOSE,
         OVERALL_PLOT,
+        COUNTRY_PLOT,
         CORR_INCOME_FLYING,
         PLOT_INCOME_FLYING,
         FAIRNESS_PLOT,
@@ -157,6 +166,9 @@ rule all:
         ROB_CONTR_WTC_SPEEDERS,
         ROB_CONTR_WTP_SPEEDERS,
         ROB_TABLES,
+        CONTR_WTC_COUNTRY,
+        CONTR_WTP_COUNTRY,
+        LRT_COUNTRY,
         PLOT_DIST_INCOME,
         PLOT_DIST_FLIGHTS,
         PLOT_DIST_CLIM,
@@ -227,6 +239,8 @@ rule lmm_simple_models:
         emm_wtp_haul    = EMM_WTP_HAUL,
         contr_wtc       = CONTR_WTC,
         contr_wtp       = CONTR_WTP,
+        ranef_wtc       = RANEF_WTC,
+        ranef_wtp       = RANEF_WTP,
         assumptions_wtc = ASSUMPTIONS_WTC,
         assumptions_wtp = ASSUMPTIONS_WTP
     script:
@@ -278,9 +292,12 @@ rule plot_overall_emm:
         emm_wtc   = EMM_WTC,
         emm_wtp   = EMM_WTP,
         contr_wtc = CONTR_WTC,
-        contr_wtp = CONTR_WTP
+        contr_wtp = CONTR_WTP,
+        ranef_wtc = RANEF_WTC,
+        ranef_wtp = RANEF_WTP
     output:
-        overall_plot = OVERALL_PLOT
+        overall_plot = OVERALL_PLOT,
+        country_plot = COUNTRY_PLOT
     script:
         "scripts/plots/10_overall_emm.R"
 
@@ -359,7 +376,10 @@ rule robustness_checks:
         emm_wtp_speeders       = ROB_EMM_WTP_SPEEDERS,
         contr_wtc_speeders     = ROB_CONTR_WTC_SPEEDERS,
         contr_wtp_speeders     = ROB_CONTR_WTP_SPEEDERS,
-        rob_tables             = ROB_TABLES
+        rob_tables             = ROB_TABLES,
+        contr_wtc_country      = CONTR_WTC_COUNTRY,
+        contr_wtp_country      = CONTR_WTP_COUNTRY,
+        lrt_country            = LRT_COUNTRY
     script:
         "scripts/analysis/07_robustness_checks.R"
 
