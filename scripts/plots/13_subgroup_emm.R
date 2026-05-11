@@ -497,7 +497,7 @@ subgroups_flier <- emm_wtp_flier |>
   pull(label)
 
 scale_flier <- make_subgroup_scale(
-  subgroups = subgroups_flier, legend_title = "Flying behaviour"
+  subgroups = subgroups_flier, legend_title = "Flying frequency"
 )
 
 subgroups_clim <- emm_wtp_clim |>
@@ -733,11 +733,11 @@ combined_group_levels <- c(
   "Non-flier"
 )
 
-moderator_levels <- c("Flying behaviour", "Flying purpose")
+moderator_levels <- c("Flying frequency", "Flying purpose")
 
 contr_wtp_combined <- bind_rows(
   contr_wtp_flier |>
-    mutate(moderator = "Flying behaviour", group = as.character(flying_group)),
+    mutate(moderator = "Flying frequency", group = as.character(flying_group)),
   contr_wtp_purpose |>
     mutate(moderator = "Flying purpose", group = as.character(purpose_group))
 ) |>
@@ -748,7 +748,7 @@ contr_wtp_combined <- bind_rows(
 
 contr_wtc_combined <- bind_rows(
   contr_wtc_flier |>
-    mutate(moderator = "Flying behaviour", group = as.character(flying_group)),
+    mutate(moderator = "Flying frequency", group = as.character(flying_group)),
   contr_wtc_purpose |>
     mutate(moderator = "Flying purpose", group = as.character(purpose_group))
 ) |>
@@ -812,8 +812,8 @@ make_contr_panel <- function(
 
 plot_contr_combined <- (
     make_contr_panel(
-      contr_wtp_combined, "Flying behaviour",
-      title_wtp_comb, 16, "Flying behaviour", FALSE
+      contr_wtp_combined, "Flying frequency",
+      title_wtp_comb, 16, "Flying frequency", FALSE
     ) |
     make_contr_panel(
       contr_wtp_combined, "Flying purpose",
@@ -821,8 +821,8 @@ plot_contr_combined <- (
     )
   ) / (
     make_contr_panel(
-      contr_wtc_combined, "Flying behaviour",
-      title_wtc_comb, 17, "Flying behaviour", TRUE
+      contr_wtc_combined, "Flying frequency",
+      title_wtc_comb, 17, "Flying frequency", TRUE
     ) |
     make_contr_panel(
       contr_wtc_combined, "Flying purpose",
