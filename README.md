@@ -38,6 +38,10 @@ The `data-collection/` folder contains scripts used to build the survey.
 - **`sythetic-data.py`** — generates synthetic data for piloting
 - **`functions/pre-analysis.R`** — helper functions
 
+## Configuring plot aesthetics
+
+Edit `config.yaml` to adjust text size, point size, line widths, and colour scheme across all plots at once.
+
 ### experiment-qualtrics
 
 JavaScript and HTML snippets embedded directly in the Qualtrics survey. Each file corresponds to one survey page or question block:
@@ -54,7 +58,3 @@ JavaScript and HTML snippets embedded directly in the Qualtrics survey. Each fil
 | `display_nr_flights.js` | Echoes back the respondent's self-reported planned flights as a recall check |
 | `summary_que_wtc[_mobile].js/.html` | Displays a summary infographic before the WTC question, adapted for desktop and mobile |
 | `summary_que_wtp[_mobile].js/.html` | Displays a summary infographic before the WTP question, adapted for desktop and mobile |
-
-## Configuring plot aesthetics
-
-Edit `config.yaml` to adjust text size, point size, line widths, and colour scheme across all plots at once.
