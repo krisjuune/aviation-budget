@@ -2,7 +2,9 @@
 
 Analysis pipeline for a survey experiment on aviation short-term decaronisation options, examining willingness to pay (WTP) for flying tickets including a sustainable aviation surcharge and willingness to change (WTC) flying behaviour across three countries (US, Switzerland, China) under different design principles, which allocate the burden based on different distributive justice principles.
 
-## Setup
+## Analysis
+
+### Setup
 
 Requires [conda](https://docs.conda.io/en/latest/miniconda.html). Create and activate the environment:
 
@@ -11,7 +13,7 @@ conda env create -f environment.yaml
 conda activate aviation-budget
 ```
 
-## Running the pipeline
+### Running the pipeline
 
 Place the raw survey data files in `raw-data/`, then run:
 
@@ -27,6 +29,10 @@ To also render the sample exploration HTML report:
 snakemake --cores 2 --config html_reports=true
 ```
 
+### Configuring plot aesthetics
+
+Edit `config.yaml` to adjust text size, point size, line widths, and colour scheme across all plots at once.
+
 ## Data collection
 
 The `data-collection/` folder contains scripts used to build the survey.
@@ -37,10 +43,6 @@ The `data-collection/` folder contains scripts used to build the survey.
 - **`power-analysis.R`** — power analysis for sample size determination
 - **`sythetic-data.py`** — generates synthetic data for piloting
 - **`functions/pre-analysis.R`** — helper functions
-
-## Configuring plot aesthetics
-
-Edit `config.yaml` to adjust text size, point size, line widths, and colour scheme across all plots at once.
 
 ### experiment-qualtrics
 
